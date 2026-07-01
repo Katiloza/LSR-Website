@@ -1,0 +1,306 @@
+import React, { useState } from "react";
+import { cn } from "../lib/utils";
+import { motion, AnimatePresence } from "motion/react";
+
+export interface StudyData {
+  id: string;
+  name: string;
+  trialName: string;
+  hr: number;
+  ci: [number, number];
+  weight: number;
+}
+
+export interface ForestPlotData {
+  id: string;
+  title: string;
+  subtitle?: string;
+  studies: StudyData[];
+  pooledHr: number;
+  pooledCi: [number, number];
+  heterogeneity: {
+    i2: string;
+    t2: string;
+    p: string;
+  };
+  treatment?: string;
+  control?: string;
+  outcome?: string;
+}
+
+interface ForestPlotProps {
+  data: ForestPlotData;
+  isActive?: boolean;
+}
+
+function computeTakeaway(
+  study: StudyData,
+  outcome: string,
+  treatment: string,
+  control: string
+): string {
+  const [lo, hi] = study.ci;
+  const significant = (lo < 1 && hi < 1) || (lo > 1 && hi > 1);
+
+  const sigPhrase = significant
+    ? "This trial found a statistically significant"
+    : "This trial suggested but did not statistically confirm";
+
+  const effectPct = Math.round(
+    study.hr < 1 ? (1 - study.hr) * 100 : (study.hr - 1) * 100
+  );
+  const direction = study.hr < 1 ? "lower" : "higher";
+
+  let weightNote = "";
+  if (study.weight >= 30) {
+    weightNote = " It was one of the most influential studies in this analysis.";
+  } else if (study.weight < 15) {
+    weightNote = " It contributed a smaller share to the pooled estimate.";
+  }
+
+  return `${sigPhrase} a ${effectPct}% ${direction} risk of ${outcome} with ${treatment} versus ${control}.${weightNote}`;
+}
+
+export function ForestPlot({ data, isActive }: ForestPlotProps) {
+  const [hoveredStudyId, setHoveredStudyId] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  const outcomeLabel = data.outcome ?? data.title.split("|")[0].trim();
+  const treatmentLabel = data.treatment ?? "treatment";
+  const controlLabel = data.control ?? "control";
+
+  const getPosition = (val: number) => {
+    const min = 0.22;
+    const max = 3;
+    const logMin = Math.log(min);
+    const logMax = Math.log(max);
+    const logVal = Math.log(val);
+    return ((logVal - logMin) / (logMax - logMin)) * 100;
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent, id: string) => {
+    setHoveredStudyId(id);
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredStudyId(null);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      id={data.id}
+      className={cn(
+        "bg-white rounded-xl transition-all border border-gray-100 mb-8 p-6 w-full overflow-hidden mx-auto",
+        isActive ? "ring-2 ring-blue-100 scale-[1.002]" : ""
+      )}
+    >
+      <h3 className="font-medium mb-6 border-b border-gray-50 pb-4 font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
+        {data.title}
+      </h3>
+
+      <div className="grid grid-cols-12 gap-8">
+        {/* Table Side */}
+        <div className="col-span-7 overflow-x-auto">
+          <table className="w-full text-left font-['Inter',sans-serif]">
+            <thead>
+              <tr className="border-b border-[#D0D5DC]">
+                <th className="py-2 text-[12px] font-bold text-[#101318] w-[20%]">Study</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] w-[35%]">Trial Name</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[10%]">HR</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[15%]">95% CI</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] text-right w-[20%]">Weight</th>
+              </tr>
+            </thead>
+            <tbody className="text-[13px]">
+              {data.studies.map((study) => (
+                <tr 
+                  key={study.id} 
+                  className={cn(
+                    "border-b border-[#EAEDF1] transition-colors h-[48px]",
+                    hoveredStudyId === study.id ? "bg-blue-50/50" : "hover:bg-gray-50/50"
+                  )}
+                  onMouseEnter={() => setHoveredStudyId(study.id)}
+                  onMouseLeave={() => setHoveredStudyId(null)}
+                >
+                  <td className="py-2 text-[#0663AD] hover:underline cursor-pointer">{study.name}</td>
+                  <td className="py-2 text-[#101318]">{study.trialName}</td>
+                  <td className="py-2 text-[#101318] text-center tabular-nums">{study.hr.toFixed(2)}</td>
+                  <td className="py-2 text-[#101318] text-center tabular-nums">[{study.ci[0].toFixed(2)}; {study.ci[1].toFixed(2)}]</td>
+                  <td className="py-2 text-[#101318] text-right tabular-nums">{study.weight.toFixed(1)}%</td>
+                </tr>
+              ))}
+              <tr className="border-b-3 border-[#101318] bg-gray-50/30 h-[48px]">
+                <td colSpan={2} className="py-2 font-bold text-[#101318]">Random effects model</td>
+                <td className="py-2 font-bold text-[#101318] text-center tabular-nums">{data.pooledHr.toFixed(2)}</td>
+                <td className="py-2 font-bold text-[#101318] text-center tabular-nums">[{data.pooledCi[0].toFixed(2)}; {data.pooledCi[1].toFixed(2)}]</td>
+                <td className="py-2 font-bold text-[#101318] text-right tabular-nums">100%</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="mt-2 text-[12px] text-[#333C48] font-['Inter',sans-serif]">
+            Heterogeneity: I² = {data.heterogeneity.i2}; τ² = {data.heterogeneity.t2}; p = {data.heterogeneity.p}
+          </p>
+        </div>
+
+        {/* Plot Side */}
+        <div className="col-span-5 flex flex-col relative px-[0px] pt-[36px] pb-[72px] m-[0px]">
+          <div className="w-full relative border-l border-b border-gray-300 h-full min-h-[300px]">
+            {/* Axis Title */}
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[13px] font-bold text-gray-900 font-['Inter',sans-serif]">
+              Hazard Ratio (95% CI)
+            </div>
+
+            {/* Grid / Axis labels */}
+            <div className="absolute bottom-[-24px] left-0 text-[11px] text-gray-500">0.22</div>
+            <div className="absolute bottom-[-24px] right-0 text-[11px] text-gray-500">3</div>
+            {/* Directional labels fixed to axis boundaries */}
+            <span
+              className="absolute bottom-[-54px] left-0 text-[12px] font-bold text-[#101318] font-['Inter',sans-serif] pointer-events-none"
+            >
+              Favours treatment
+            </span>
+            <span
+              className="absolute bottom-[-54px] right-0 text-[12px] font-bold text-[#101318] font-['Inter',sans-serif] pointer-events-none"
+            >
+              Favours control
+            </span>
+
+            {/* Vertical Reference Lines */}
+            {/* Line of no effect (HR = 1) - Solid Black */}
+            <div 
+              className="absolute top-0 bottom-0 border-l border-[#101318] z-0 pointer-events-none"
+              style={{ left: `${getPosition(1)}%` }}
+            />
+            
+            {/* Pooled Estimate Reference - Dashed Red */}
+            <div 
+              className="absolute top-0 bottom-0 border-l border-dashed border-[#D92D20] z-0 pointer-events-none opacity-50"
+              style={{ left: `${getPosition(data.pooledHr)}%` }}
+            />
+
+            <div 
+              className="absolute bottom-[-24px] -translate-x-1/2 text-[11px] font-bold text-gray-900"
+              style={{ left: `${getPosition(1)}%` }}
+            >
+              1
+            </div>
+
+            {/* Individual Points and Whiskers */}
+            <div className="flex flex-col h-full">
+              {data.studies.map((study) => {
+                const markerSize = Math.max(6, 4 + (study.weight * 0.8)); // Scaled box size
+                return (
+                  <div 
+                    key={study.id} 
+                    className={cn(
+                      "relative h-[48px] w-full transition-colors",
+                      hoveredStudyId === study.id ? "bg-blue-50/20" : ""
+                    )}
+                  >
+                    {/* Invisible Hit Area (Full row height) */}
+                    <div 
+                      className="absolute inset-0 z-20 cursor-crosshair"
+                      onMouseEnter={(e) => handleMouseEnter(e, study.id)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                    />
+
+                    {/* Whisker */}
+                    <div 
+                      className="absolute h-[1.2px] bg-gray-900 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
+                      style={{ 
+                        left: `${getPosition(study.ci[0])}%`, 
+                        width: `${getPosition(study.ci[1]) - getPosition(study.ci[0])}%` 
+                      }}
+                    />
+                    
+                    {/* Marker (Square Box) */}
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ 
+                        scale: 1,
+                        backgroundColor: hoveredStudyId === study.id ? "#2E75B5" : "#000000"
+                      }}
+                      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 pointer-events-none"
+                      style={{ 
+                        left: `${getPosition(study.hr)}%`, 
+                        width: `${markerSize}px`, 
+                        height: `${markerSize}px` 
+                      }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Pooled Estimate (Diamond) */}
+              <div className="relative h-[48px] w-full mt-auto">
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 z-10"
+                  style={{ 
+                    left: `${getPosition(data.pooledCi[0])}%`, 
+                    width: `${getPosition(data.pooledCi[1]) - getPosition(data.pooledCi[0])}%`,
+                    height: '14px'
+                  }}
+                >
+                  <motion.svg 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    viewBox="0 0 100 100" 
+                    preserveAspectRatio="none"
+                    className="w-full h-full text-[#D92D20] fill-current overflow-visible"
+                  >
+                    <path d="M 50 0 L 100 50 L 50 100 L 0 50 Z" />
+                  </motion.svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hover Tooltip */}
+      <AnimatePresence>
+        {hoveredStudyId && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            style={{ 
+              position: 'fixed',
+              left: tooltipPos.x + 20,
+              top: tooltipPos.y - 40,
+              zIndex: 1000,
+              pointerEvents: 'none'
+            }}
+            className="bg-[#101828] text-white px-3 py-2 rounded-lg text-[12px] min-w-[240px] max-w-[320px] border border-gray-700"
+          >
+            {(() => {
+              const study = data.studies.find(s => s.id === hoveredStudyId);
+              if (!study) return null;
+              const takeaway = computeTakeaway(study, outcomeLabel, treatmentLabel, controlLabel);
+              return (
+                <div className="flex flex-col gap-1">
+                  <div className="font-bold border-b border-gray-700 pb-1 mb-1">
+                    {study.name}
+                  </div>
+                  <div className="text-gray-300 leading-[1.5]">
+                    {takeaway}
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
