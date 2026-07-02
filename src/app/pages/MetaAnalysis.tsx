@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { GlobalSearch } from "../components/GlobalSearch";
 import { cn } from "../lib/utils";
 import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
@@ -13,8 +14,12 @@ import {
 } from "../mockData";
 
 export function MetaAnalysis() {
+  const [searchParams] = useSearchParams();
   const [isPanelOpen, setIsPanelOpen] = useState(true);
-  const [analysisType, setAnalysisType] = useState<AnalysisType>("Primary");
+  const [analysisType, setAnalysisType] = useState<AnalysisType>(() => {
+    const hl = searchParams.get("hl");
+    return hl === "Sensitivity" ? "Sensitivity" : "Primary";
+  });
   const [sensitivityOutcome, setSensitivityOutcome] = useState<"os" | "pfs">("os");
   const [activeSection, setActiveSection] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,16 +136,7 @@ export function MetaAnalysis() {
                 </div>
 
                 <div className="mt-8 flex flex-col gap-4">
-                  <div className="relative w-full">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2E75B5] opacity-60" size={18} />
-                    <input 
-                      type="text" 
-                      placeholder="Search patient outcomes, treatment options, etc"
-                      className="w-full pl-12 pr-6 py-3 rounded-full border border-blue-100 shadow-[0px_1px_4px_0px_rgba(0,0,0,0.12)] bg-white text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all font-['Inter',sans-serif]"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
+                  <GlobalSearch placeholder="Search patient outcomes, treatment options, etc" />
                   
                   <div className="flex flex-wrap gap-2">
                     {filterConfigs.map((config) => (

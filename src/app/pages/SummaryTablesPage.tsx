@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router";
-import { Construction, Search } from "lucide-react";
+import { Construction } from "lucide-react";
+import { GlobalSearch } from "../components/GlobalSearch";
 import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
 import { NavPanelShell } from "../components/NavPanelShell";
@@ -32,10 +33,12 @@ const MOCK_STUDIES: StudyRow[] = [
 ];
 
 const FILTER_CONFIGS = [
-  { id: "therapyType", label: "Therapy type", options: [{ label: "Monotherapy", count: 7 }, { label: "Combination", count: 5 }] },
-  { id: "treatmentClass", label: "Treatment class", options: [{ label: "NHT", count: 5 }, { label: "Chemotherapy", count: 1 }, { label: "PARPi", count: 5 }, { label: "PSMA", count: 1 }] },
-  { id: "lineOfTherapy", label: "Line of therapy", options: [{ label: "First-line", count: 6 }, { label: "Second-line", count: 5 }, { label: "Third-line or later", count: 1 }] },
-  { id: "phase", label: "Trial phase", options: [{ label: "Phase II", count: 0 }, { label: "Phase III", count: 12 }] },
+  { id: "therapy",       label: "Type of therapy",  options: [{ label: "Monotherapy", count: 7 }, { label: "Combination", count: 5 }] },
+  { id: "treatmentClass",label: "Treatment class",   options: [{ label: "NHT", count: 5 }, { label: "Chemotherapy", count: 1 }, { label: "PARPi", count: 5 }, { label: "PSMA", count: 1 }] },
+  { id: "treatment",     label: "Treatment",         options: [{ label: "Enzalutamide", count: 3 }, { label: "Abiraterone", count: 4 }, { label: "Olaparib", count: 2 }, { label: "Talazoparib", count: 1 }, { label: "Niraparib", count: 1 }, { label: "Rucaparib", count: 1 }] },
+  { id: "control",       label: "Control",           options: [{ label: "Placebo", count: 8 }, { label: "Standard of Care", count: 1 }, { label: "Physician's choice", count: 1 }, { label: "Abiraterone / Enzalutamide", count: 1 }, { label: "Enzalutamide / Abiraterone", count: 1 }] },
+  { id: "line",          label: "Line of therapy",   options: [{ label: "First-line", count: 6 }, { label: "Second-line", count: 5 }, { label: "Third-line or later", count: 1 }] },
+  { id: "phase",         label: "Trial phase",       options: [{ label: "Phase II", count: 0 }, { label: "Phase III", count: 12 }] },
 ];
 
 function PlaceholderView({ title }: { title: string }) {
@@ -53,6 +56,7 @@ function PlaceholderView({ title }: { title: string }) {
 export function SummaryTablesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get("tab") as TableTab) ?? "interactive-table";
+  const highlightId = searchParams.get("hl") ?? undefined;
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
@@ -106,7 +110,7 @@ export function SummaryTablesPage() {
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
           <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
             <div
-              className="rounded-[18px] p-8 mx-1 my-1"
+              className="rounded-t-[18px] p-8"
               style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
             >
               <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
@@ -120,15 +124,26 @@ export function SummaryTablesPage() {
                 included in the living systematic review. Filter by study characteristics or toggle column visibility.
               </p>
 
-              <div className="mt-8 relative w-full">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2E75B5] opacity-60" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search studies, treatments, trials…"
-                  className="w-full pl-12 pr-6 py-3 rounded-full border border-blue-100 shadow-[0px_1px_4px_0px_rgba(0,0,0,0.12)] bg-white text-[14px] font-['Inter',sans-serif] focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <GlobalSearch placeholder="Search studies, treatments, trials…" className="mt-4" />
+
+              <div className="flex flex-wrap gap-2 mt-3">
+                {FILTER_CONFIGS.map((cfg) => (
+                  <FilterChip
+                    key={cfg.id}
+                    label={cfg.label}
+                    options={cfg.options}
+                    selectedOptions={activeFilters[cfg.id] ?? []}
+                    onChange={(sel) => setActiveFilters((f) => ({ ...f, [cfg.id]: sel }))}
+                  />
+                ))}
+                {hasFilters && (
+                  <button
+                    onClick={() => setActiveFilters({})}
+                    className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-white/60"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             </div>
 
@@ -153,30 +168,7 @@ export function SummaryTablesPage() {
               </div>
 
               {activeTab === "interactive-table" && (
-                <>
-                  {/* Filter chips */}
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
-                    {FILTER_CONFIGS.map((cfg) => (
-                      <FilterChip
-                        key={cfg.id}
-                        label={cfg.label}
-                        options={cfg.options}
-                        selectedOptions={activeFilters[cfg.id] ?? []}
-                        onChange={(sel) => setActiveFilters((f) => ({ ...f, [cfg.id]: sel }))}
-                      />
-                    ))}
-                    {hasFilters && (
-                      <button
-                        onClick={() => setActiveFilters({})}
-                        className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-
-                  <SummaryTable rows={MOCK_STUDIES} activeFilters={activeFilters} />
-                </>
+                <SummaryTable rows={MOCK_STUDIES} activeFilters={activeFilters} highlightId={highlightId} />
               )}
 
               {activeTab === "results-table" && <PlaceholderView title="Results Table" />}

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router";
-import { BarChart, Activity, Info, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { BarChart, Activity, Info, ChevronDown, ChevronRight } from "lucide-react";
+import { GlobalSearch } from "../components/GlobalSearch";
 import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
 import { NavPanelShell } from "../components/NavPanelShell";
@@ -214,6 +215,7 @@ function OutcomeTreeNode({
 export function SummaryOfFindingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const analysisType = (searchParams.get("analysis") as AnalysisType) ?? "primary";
+  const highlightId = searchParams.get("hl") ?? undefined;
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRow, setSelectedRow] = useState<SoFRow | null>(null);
@@ -315,7 +317,7 @@ export function SummaryOfFindingsPage() {
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
           <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
             <div
-              className="rounded-[18px] p-8 mx-1 my-1"
+              className="rounded-t-[18px] p-8"
               style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
             >
               <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
@@ -332,16 +334,7 @@ export function SummaryOfFindingsPage() {
                 . Certainty of evidence assessed using the GRADE approach. Use the sidebar to select which outcomes to display.
               </p>
 
-              <div className="mt-8 relative w-full">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2E75B5] opacity-60" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search outcomes, effects, certainty levels…"
-                  className="w-full pl-12 pr-6 py-3 rounded-full border border-blue-100 shadow-[0px_1px_4px_0px_rgba(0,0,0,0.12)] bg-white text-[14px] font-['Inter',sans-serif] focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <GlobalSearch placeholder="Search outcomes, effects, certainty levels…" className="mt-8" />
             </div>
 
             {selectedRow ? (
@@ -356,6 +349,7 @@ export function SummaryOfFindingsPage() {
                   visibleOutcomeIds={checkedIds}
                   comparison={`mCRPC — ${analysisType === "primary" ? "Primary" : "Sensitivity"} Analysis`}
                   onRowClick={(row) => row.domains && setSelectedRow(row)}
+                  highlightId={highlightId}
                 />
               </div>
             )}

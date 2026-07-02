@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -30,11 +30,28 @@ interface Column {
 interface SummaryTableProps {
   rows: StudyRow[];
   activeFilters: Record<string, string[]>;
+  highlightId?: string;
 }
 
 type SortDir = "asc" | "desc" | null;
 
-export function SummaryTable({ rows, activeFilters }: SummaryTableProps) {
+function rowMatchesHighlight(row: StudyRow, hlId: string) {
+  return (
+    row.trialName === hlId ||
+    row.treatmentClass === hlId ||
+    row.lineOfTherapy === hlId ||
+    row.treatment.includes(hlId)
+  );
+}
+
+export function SummaryTable({ rows, activeFilters, highlightId }: SummaryTableProps) {
+  const hlRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    if (highlightId && hlRef.current) {
+      hlRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId]);
   const [columns, setColumns] = useState<Column[]>([
     { key: "study", label: "Study", visible: true },
     { key: "year", label: "Year", visible: true },
@@ -58,11 +75,18 @@ export function SummaryTable({ rows, activeFilters }: SummaryTableProps) {
 
   const visibleColumns = columns.filter((c) => c.visible);
 
+  // Map filter chip IDs → StudyRow property names
+  const FILTER_KEY_MAP: Record<string, keyof StudyRow> = {
+    therapy: "therapyType",
+    line: "lineOfTherapy",
+  };
+
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       return Object.entries(activeFilters).every(([key, values]) => {
         if (!values.length) return true;
-        const cellValue = String(row[key as keyof StudyRow] ?? "");
+        const rowKey = (FILTER_KEY_MAP[key] ?? key) as keyof StudyRow;
+        const cellValue = String(row[rowKey] ?? "");
         return values.includes(cellValue);
       });
     });
@@ -176,12 +200,16 @@ export function SummaryTable({ rows, activeFilters }: SummaryTableProps) {
                 </td>
               </tr>
             ) : (
-              sortedRows.map((row, i) => (
-                <tr
+              sortedRows.map((row, i) => {
+                const isHl = !!highlightId && rowMatchesHighlight(row, highlightId);
+                return (<tr
                   key={row.id}
+                  ref={isHl && !hlRef.current ? (el) => { hlRef.current = el; } : undefined}
                   className={cn(
-                    "border-b border-gray-50 transition-colors hover:bg-blue-50/30",
-                    i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    "border-b border-gray-50 transition-all hover:bg-blue-50/30",
+                    isHl
+                      ? "bg-[#E4F0FE] ring-2 ring-inset ring-[#2E75B5]/30 animate-[highlight-fade_2.5s_ease-in-out_forwards]"
+                      : i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                   )}
                 >
                   {visibleColumns.map((col) => {
@@ -208,7 +236,8 @@ export function SummaryTable({ rows, activeFilters }: SummaryTableProps) {
                     );
                   })}
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

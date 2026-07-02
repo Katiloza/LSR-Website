@@ -1,6 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { GitBranch, Search as SearchIcon, Filter, Users, CheckCircle, XCircle } from "lucide-react";
+import { GlobalSearch } from "../components/GlobalSearch";
 import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
 import { NavPanelShell } from "../components/NavPanelShell";
@@ -20,17 +21,25 @@ const VIEW_OPTIONS: { id: PrismaView; label: string }[] = [
 const CURRENT_STATE_STAGES: PrismaStage[] = [
   {
     id: "databases",
-    label: "Records identified via database searching",
-    count: 4821,
+    label: "Initial search from databases",
+    count: 26595,
     sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov",
     type: "total",
     studies: [],
   },
   {
-    id: "registers",
-    label: "Records identified via other sources",
-    count: 142,
-    sublabel: "WHO ICTRP, grey literature",
+    id: "auto-update",
+    label: "Records identified through automatic update",
+    count: 7494,
+    sublabel: "Monthly automated search",
+    type: "total",
+    studies: [],
+  },
+  {
+    id: "manual-update",
+    label: "Records identified through manual update",
+    count: 38,
+    sublabel: "Grey literature, expert contact",
     type: "total",
     studies: [],
   },
@@ -99,12 +108,24 @@ const CURRENT_STATE_STAGES: PrismaStage[] = [
   },
 ];
 
-const INITIAL_STATE_STAGES: PrismaStage[] = CURRENT_STATE_STAGES.map((s) => ({
-  ...s,
-  count: s.id === "databases" ? 3150 : s.id === "registers" ? 98 : s.id === "screened" ? 3248 :
-    s.id === "excluded-screening" ? 3071 : s.id === "sought" ? 177 : s.id === "not-retrieved" ? 5 :
-    s.id === "assessed" ? 172 : s.id === "excluded-eligibility" ? 138 : s.id === "included" ? 34 : s.count,
-}));
+const INITIAL_STATE_STAGES: PrismaStage[] = [
+  {
+    id: "databases",
+    label: "Initial search from databases",
+    count: 26595,
+    sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov",
+    type: "total",
+    studies: [],
+  },
+  // auto-update and manual-update are omitted — initial search has only one identification source
+  ...CURRENT_STATE_STAGES.filter((s) => !["databases", "auto-update", "manual-update"].includes(s.id)).map((s) => ({
+    ...s,
+    count: s.id === "screened" ? 26595 : s.id === "excluded-screening" ? 25198 :
+      s.id === "sought" ? 1397 : s.id === "not-retrieved" ? 23 :
+      s.id === "assessed" ? 1374 : s.id === "excluded-eligibility" ? 1340 :
+      s.id === "included" ? 34 : s.count,
+  })),
+];
 
 const LIVING_SEARCH_DATA = [
   { year: 2021, month: 1, count: 12 }, { year: 2021, month: 2, count: 8 }, { year: 2021, month: 3, count: 24 },
@@ -134,6 +155,7 @@ const LIVING_SEARCH_DATA = [
 export function PrismaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeView = (searchParams.get("view") as PrismaView) ?? "current-state";
+  const highlightStudy = searchParams.get("hl") ?? undefined;
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<PrismaStage | null>(null);
@@ -155,6 +177,16 @@ export function PrismaPage() {
   };
 
   const stages = activeView === "initial-search" ? INITIAL_STATE_STAGES : CURRENT_STATE_STAGES;
+
+  // When navigating from search with a study highlight, open the included stage
+  useEffect(() => {
+    if (!highlightStudy) return;
+    const includedStage = CURRENT_STATE_STAGES.find((s) => s.id === "included");
+    if (includedStage) {
+      setSelectedStage(includedStage);
+      setActiveNodeId("included");
+    }
+  }, [highlightStudy]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
@@ -203,13 +235,13 @@ export function PrismaPage() {
                   <div className="flex items-center gap-2">
                     <SearchIcon size={14} className="text-gray-400" />
                     <span className="text-[12px] text-gray-600 font-['Inter',sans-serif]">
-                      {activeView === "current-state" ? "4,963" : "3,248"} records screened
+                      {activeView === "current-state" ? "34,127" : "26,595"} records screened
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Filter size={14} className="text-gray-400" />
                     <span className="text-[12px] text-gray-600 font-['Inter',sans-serif]">
-                      {activeView === "current-state" ? "243" : "172"} assessed for eligibility
+                      {activeView === "current-state" ? "243" : "1,374"} assessed for eligibility
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -229,7 +261,7 @@ export function PrismaPage() {
           <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
             {/* Page header */}
             <div
-              className="rounded-[18px] p-8 mx-1 my-1"
+              className="rounded-t-[18px] p-8"
               style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
             >
               <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
@@ -246,16 +278,7 @@ export function PrismaPage() {
                   : "The PRISMA flow representing the current state of the living review. Click any node to view the studies at that stage."}
               </p>
 
-              <div className="mt-8 relative w-full">
-                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2E75B5] opacity-60" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search studies, databases, screening stages…"
-                  className="w-full pl-12 pr-6 py-3 rounded-full border border-blue-100 shadow-[0px_1px_4px_0px_rgba(0,0,0,0.12)] bg-white text-[14px] font-['Inter',sans-serif] focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <GlobalSearch placeholder="Search studies, databases, screening stages…" className="mt-8" />
             </div>
 
             <div className="p-8">

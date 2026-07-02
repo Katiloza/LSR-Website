@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { CertaintyBadge, CertaintyLevel } from "./CertaintyBadge";
 import type { DomainAssessment } from "./OutcomeDetailView";
@@ -48,10 +48,18 @@ interface GradeTableProps {
   visibleOutcomeIds: string[];
   comparison: string;
   onRowClick?: (row: SoFRow) => void;
+  highlightId?: string;
 }
 
-export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick }: GradeTableProps) {
+export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, highlightId }: GradeTableProps) {
   const visibleRows = rows.filter((r) => visibleOutcomeIds.includes(r.id));
+  const hlRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    if (highlightId && hlRef.current) {
+      hlRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId]);
 
   const [showCI, setShowCI] = useState(true);
   const [showARD, setShowARD] = useState(true);
@@ -139,11 +147,17 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick }: 
                 </td>
               </tr>
             ) : (
-              visibleRows.map((row, i) => (
-                <tr
+              visibleRows.map((row, i) => {
+                const isHl = !!highlightId && row.id === highlightId;
+                return (<tr
                   key={row.id}
+                  ref={isHl && !hlRef.current ? (el) => { hlRef.current = el; } : undefined}
                   onClick={() => onRowClick?.(row)}
-                  className={`border-b border-gray-50 transition-colors group ${i % 2 === 0 ? "bg-white" : "bg-gray-50/30"} ${onRowClick ? "cursor-pointer hover:bg-blue-50/40" : "hover:bg-blue-50/20"}`}
+                  className={`border-b border-gray-50 transition-all group ${
+                    isHl
+                      ? "animate-[highlight-fade_2.5s_ease-in-out_forwards] ring-2 ring-inset ring-[#2E75B5]/30"
+                      : i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                  } ${onRowClick ? "cursor-pointer hover:bg-blue-50/40" : "hover:bg-blue-50/20"}`}
                 >
                   <td className="px-4 py-3 text-[13px]">
                     <div className="flex items-center gap-1.5">
@@ -170,7 +184,8 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick }: 
                     <CertaintyBadge level={row.certainty} />
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

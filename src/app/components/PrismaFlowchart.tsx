@@ -84,8 +84,9 @@ export function PrismaFlowchart({ stages, onNodeClick, activeNodeId }: PrismaFlo
   const phases = [
     {
       label: "Identification",
-      stageIds: ["databases", "registers"],
+      stageIds: ["databases", "auto-update", "manual-update"],
       connectorLabel: undefined,
+      mainLayout: "row" as const,
     },
     {
       label: "Screening",
@@ -130,7 +131,10 @@ export function PrismaFlowchart({ stages, onNodeClick, activeNodeId }: PrismaFlo
             {/* Stage row */}
             <div className="flex gap-4 items-start pl-28">
               {/* Main (include/total) stages */}
-              <div className="flex flex-col gap-2 flex-1 max-w-sm">
+              <div className={phase.mainLayout === "row"
+                ? "flex flex-row gap-3 flex-1"
+                : "flex flex-col gap-2 flex-1 max-w-sm"
+              }>
                 {mainStages.map((stage) => (
                   <StageNode
                     key={stage.id}

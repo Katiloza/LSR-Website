@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createHashRouter as createBrowserRouter, Navigate } from "react-router";
 import { MetaAnalysis } from "./pages/MetaAnalysis";
 import { HomePage } from "./pages/HomePage";
 import { PrismaPage } from "./pages/PrismaPage";
