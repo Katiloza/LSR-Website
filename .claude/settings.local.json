@@ -12,7 +12,20 @@
       "Bash(curl -s http://localhost:5173)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(cp \"/Users/katlozano/Desktop/LSR website/dist/index.html\" \"/Users/katlozano/Desktop/mCRPC-prototype.html\")",
+      "Read(//Users/katlozano/Desktop/**)",
+      "Bash(python3 -c ' *)",
+      "mcp__claude-in-chrome__navigate",
+      "Bash(cat vite.config.ts)",
+      "Bash(cat vite.config.js)",
+      "Bash(ls -la \"/Users/katlozano/Desktop/LSR website/CLAUDE.md\" \"/Users/katlozano/Documents/Obsidian Vault/Living Evidence Project/CLAUDE.md\" 2>&1; find \"/Users/katlozano\" -maxdepth 6 -name \"CLAUDE.md\" -not -path \"*/node_modules/*\" 2>/dev/null)",
+      "WebFetch(domain:airtable.com)",
+      "Bash(python3 fill_grid.py)",
+      "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__get_figma_skill",
+      "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__create_new_file",
+      "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__use_figma",
+      "Bash(python3 add_p6.py)"
     ]
   }
 }

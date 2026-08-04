@@ -7,6 +7,7 @@ import { SideIconRail } from "../components/SideIconRail";
 import { NavPanelShell } from "../components/NavPanelShell";
 import { GradeTable, SoFRow } from "../components/GradeTable";
 import { OutcomeDetailView } from "../components/OutcomeDetailView";
+import { FilterBar } from "../components/FilterBar";
 import { cn } from "../lib/utils";
 
 type AnalysisType = "primary" | "sensitivity";
@@ -335,6 +336,8 @@ export function SummaryOfFindingsPage() {
               </p>
 
               <GlobalSearch placeholder="Search outcomes, effects, certainty levels…" className="mt-8" />
+
+              <FilterBar className="mt-4" />
             </div>
 
             {selectedRow ? (

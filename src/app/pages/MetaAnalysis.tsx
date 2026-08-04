@@ -6,7 +6,7 @@ import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
 import { OnPageNav, AnalysisType } from "../components/OnPageNav";
 import { ForestPlot } from "../components/ForestPlot";
-import { FilterChip } from "../components/FilterChip";
+import { FilterBar } from "../components/FilterBar";
 import { 
   PRIMARY_NAV_SECTIONS, 
   SENSITIVITY_NAV_SECTIONS, 
@@ -23,7 +23,6 @@ export function MetaAnalysis() {
   const [sensitivityOutcome, setSensitivityOutcome] = useState<"os" | "pfs">("os");
   const [activeSection, setActiveSection] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -80,15 +79,6 @@ export function MetaAnalysis() {
     { id: "pfs" as const, label: "Progression-free Survival" },
   ];
 
-  const filterConfigs = [
-    { id: "therapy", label: "Type of therapy", options: [{ label: "Monotherapy", count: 48 }, { label: "Combination", count: 24 }] },
-    { id: "class", label: "Treatment class", options: [{ label: "NHT", count: 32 }, { label: "Chemotherapy", count: 18 }, { label: "PARPi", count: 22 }] },
-    { id: "treatment", label: "Treatment", options: [{ label: "Enzalutamide", count: 12 }, { label: "Abiraterone", count: 15 }, { label: "Olaparib", count: 10 }] },
-    { id: "control", label: "Control", options: [{ label: "Placebo", count: 40 }, { label: "Standard of Care", count: 30 }] },
-    { id: "line", label: "Line of therapy", options: [{ label: "First-line", count: 50 }, { label: "Second-line", count: 20 }] },
-    { id: "phase", label: "Trial phase", options: [{ label: "Phase II", count: 25 }, { label: "Phase III", count: 45 }] },
-  ];
-
   return (
     <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
       {/* 1. Top Nav (Full Width) */}
@@ -137,18 +127,8 @@ export function MetaAnalysis() {
 
                 <div className="mt-8 flex flex-col gap-4">
                   <GlobalSearch placeholder="Search patient outcomes, treatment options, etc" />
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {filterConfigs.map((config) => (
-                      <FilterChip 
-                        key={config.id}
-                        label={config.label}
-                        options={config.options}
-                        selectedOptions={selectedFilters[config.id] || []}
-                        onChange={(selected) => setSelectedFilters({ ...selectedFilters, [config.id]: selected })}
-                      />
-                    ))}
-                  </div>
+
+                  <FilterBar />
                 </div>
               </div>
             </div>

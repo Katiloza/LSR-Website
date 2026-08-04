@@ -1,9 +1,16 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, X } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { cn } from "../lib/utils";
+import { COLUMN_SCHEMA, ColNode } from "../lib/summaryColumns";
+
+export type { ColNode } from "../lib/summaryColumns";
+export { COLUMN_SCHEMA } from "../lib/summaryColumns";
+
+// ─── Data row ─────────────────────────────────────────────────────────────────
 
 export interface StudyRow {
   id: string;
+  nct: string;
   study: string;
   year: number;
   trialName: string;
@@ -20,17 +27,112 @@ export interface StudyRow {
   orr?: string;
 }
 
-interface Column {
-  key: keyof StudyRow;
-  label: string;
-  visible: boolean;
-  width?: string;
+// ─── Schema helpers ───────────────────────────────────────────────────────────
+
+const isLeaf = (n: ColNode) => !n.children || n.children.length === 0;
+
+function collectLeaves(nodes: ColNode[]): ColNode[] {
+  return nodes.flatMap((n) => (isLeaf(n) ? [n] : collectLeaves(n.children!)));
 }
+
+export const ALL_LEAVES = collectLeaves(COLUMN_SCHEMA);
+export const ALL_LEAF_KEYS = ALL_LEAVES.map((l) => l.key);
+
+/** Every leaf key beneath a node (the node itself if it is a leaf). */
+export function descendantLeafKeys(node: ColNode): string[] {
+  return isLeaf(node) ? [node.key] : collectLeaves(node.children!).map((l) => l.key);
+}
+
+// ─── Well-known column keys (curated mock data + special formatting) ──────────
+
+const K_NCT = "trial_characteristics.nct";
+const K_TRIALNAME = "trial_characteristics.trial_name";
+const K_AUTHOR = "trial_characteristics.author";
+const K_YEAR = "trial_characteristics.year";
+const K_PHASE = "trial_characteristics.phase";
+
+const STICKY_KEYS = new Set([K_NCT, K_TRIALNAME]);
+const STICKY_WIDTH: Record<string, number> = { [K_NCT]: 132, [K_TRIALNAME]: 156 };
+
+// Mock cell values — a handful of realistic columns; everything else renders "N/A".
+const MOCK_VALUE: Record<string, (r: StudyRow) => string | number> = {
+  [K_NCT]: (r) => r.nct,
+  [K_TRIALNAME]: (r) => r.trialName,
+  [K_AUTHOR]: (r) => r.study,
+  [K_YEAR]: (r) => r.year,
+  [K_PHASE]: (r) => r.phase,
+  "trial_characteristics.total_participants_n": (r) => r.n,
+  "trial_characteristics.n.treatment": (r) => Math.round(r.n / 2),
+  "trial_characteristics.n.control": (r) => r.n - Math.round(r.n / 2),
+  "trial_characteristics.line_of_therapy": (r) => r.lineOfTherapy,
+  "trial_characteristics.type_of_therapy": (r) => r.therapyType,
+  "trial_characteristics.treatment_class": (r) => r.treatmentClass,
+  "trial_characteristics.treatment": (r) => r.treatment,
+  "trial_characteristics.control": (r) => r.control,
+  // a few outcome synths so the wide table isn't entirely N/A
+  "outcomes.median_os_mo.overall.treatment": (r) => `${28 + ((parseInt(r.id, 10) * 3) % 12)}`,
+  "outcomes.median_os_mo.overall.control": (r) => `${19 + ((parseInt(r.id, 10) * 2) % 9)}`,
+  "outcomes.no_of_deaths.overall.overall.treatment": (r) => Math.round(r.n * 0.28),
+  "outcomes.no_of_deaths.overall.overall.control": (r) => Math.round(r.n * 0.34),
+  "outcomes.orr_n_treatment.overall": (r) => `${45 + ((parseInt(r.id, 10) * 7) % 25)}%`,
+  "outcomes.orr_n_control.overall": (r) => `${22 + ((parseInt(r.id, 10) * 5) % 15)}%`,
+};
+
+function cellValue(node: ColNode, row: StudyRow): string | number {
+  const fn = MOCK_VALUE[node.key];
+  return fn ? fn(row) : "N/A";
+}
+
+// ─── Depth → level color (header cells only) ──────────────────────────────────
+// L0 category · L1 main · L2 sub · L3 sub-sub · L4 sub-sub-sub.
+// Softened/desaturated so red/blue/green don't get noisy across a very wide
+// header; white text throughout for contrast. Mapping (by depth) is preserved.
+export const LEVEL_COLORS = [
+  "#6D28D9", // L0 — purple (overarching category band)
+  "#243244", // L1 — near-black navy (main column category)
+  "#A24444", // L2 — muted red (subcolumn)
+  "#2E75B5", // L3 — brand blue (sub-subcolumn)
+  "#3F9256", // L4 — muted green (sub-sub-subcolumn)
+];
+const levelColor = (depth: number) => LEVEL_COLORS[Math.min(depth - 1, LEVEL_COLORS.length - 1)];
+
+// ─── Pruned tree ──────────────────────────────────────────────────────────────
+
+interface PrunedNode {
+  node: ColNode;
+  depth: number; // 1-based (category = 1)
+  leafCount: number;
+  children: PrunedNode[];
+}
+
+function buildPruned(node: ColNode, checked: Set<string>, depth: number): PrunedNode | null {
+  if (isLeaf(node)) {
+    return checked.has(node.key) ? { node, depth, leafCount: 1, children: [] } : null;
+  }
+  const children = node
+    .children!.map((c) => buildPruned(c, checked, depth + 1))
+    .filter((c): c is PrunedNode => c !== null);
+  if (children.length === 0) return null;
+  return { node, depth, leafCount: children.reduce((s, c) => s + c.leafCount, 0), children };
+}
+
+const nodeMaxDepth = (pn: PrunedNode): number =>
+  pn.children.length === 0 ? pn.depth : Math.max(...pn.children.map(nodeMaxDepth));
+
+function flattenPrunedLeaves(pruned: PrunedNode[]): PrunedNode[] {
+  const out: PrunedNode[] = [];
+  const walk = (pn: PrunedNode) => (pn.children.length === 0 ? out.push(pn) : pn.children.forEach(walk));
+  pruned.forEach(walk);
+  return out;
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface SummaryTableProps {
   rows: StudyRow[];
   activeFilters: Record<string, string[]>;
   highlightId?: string;
+  checkedLeafKeys: Set<string>;
 }
 
 type SortDir = "asc" | "desc" | null;
@@ -44,7 +146,12 @@ function rowMatchesHighlight(row: StudyRow, hlId: string) {
   );
 }
 
-export function SummaryTable({ rows, activeFilters, highlightId }: SummaryTableProps) {
+const FILTER_KEY_MAP: Record<string, keyof StudyRow> = {
+  therapy: "therapyType",
+  line: "lineOfTherapy",
+};
+
+export function SummaryTable({ rows, activeFilters, highlightId, checkedLeafKeys }: SummaryTableProps) {
   const hlRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
@@ -52,59 +159,70 @@ export function SummaryTable({ rows, activeFilters, highlightId }: SummaryTableP
       hlRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [highlightId]);
-  const [columns, setColumns] = useState<Column[]>([
-    { key: "study", label: "Study", visible: true },
-    { key: "year", label: "Year", visible: true },
-    { key: "trialName", label: "Trial", visible: true },
-    { key: "treatment", label: "Treatment", visible: true },
-    { key: "control", label: "Control", visible: true },
-    { key: "lineOfTherapy", label: "Line", visible: true },
-    { key: "phase", label: "Phase", visible: true },
-    { key: "n", label: "N", visible: true },
-    { key: "therapyType", label: "Therapy type", visible: false },
-    { key: "treatmentClass", label: "Class", visible: true },
-    { key: "primaryEndpoint", label: "Primary endpoint", visible: true },
-    { key: "hrOs", label: "HR OS", visible: true },
-    { key: "hrPfs", label: "HR PFS", visible: true },
-    { key: "orr", label: "ORR", visible: false },
-  ]);
 
-  const [colPanelOpen, setColPanelOpen] = useState(false);
-  const [sortKey, setSortKey] = useState<keyof StudyRow | null>("year");
+  const [sortKey, setSortKey] = useState<string | null>(K_YEAR);
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  const visibleColumns = columns.filter((c) => c.visible);
+  const { headerRows, leaves, maxDepth, stickyLeft, stickyTotal, lastStickyKey } = useMemo(() => {
+    const checked = checkedLeafKeys ?? new Set<string>();
+    const pruned = COLUMN_SCHEMA
+      .map((n) => buildPruned(n, checked, 1))
+      .filter((p): p is PrunedNode => p !== null);
 
-  // Map filter chip IDs → StudyRow property names
-  const FILTER_KEY_MAP: Record<string, keyof StudyRow> = {
-    therapy: "therapyType",
-    line: "lineOfTherapy",
-  };
+    const depth = pruned.length ? Math.max(...pruned.map(nodeMaxDepth)) : 0;
+
+    const matrix: PrunedNode[][] = Array.from({ length: depth }, () => []);
+    const walk = (pn: PrunedNode) => {
+      matrix[pn.depth - 1].push(pn);
+      pn.children.forEach(walk);
+    };
+    pruned.forEach(walk);
+
+    const leafList = flattenPrunedLeaves(pruned);
+
+    const left: Record<string, number> = {};
+    let acc = 0;
+    let lastSticky: string | null = null;
+    for (const l of leafList) {
+      if (STICKY_KEYS.has(l.node.key)) {
+        left[l.node.key] = acc;
+        acc += STICKY_WIDTH[l.node.key];
+        lastSticky = l.node.key;
+      }
+    }
+
+    return { headerRows: matrix, leaves: leafList, maxDepth: depth, stickyLeft: left, stickyTotal: acc, lastStickyKey: lastSticky };
+  }, [checkedLeafKeys]);
 
   const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
-      return Object.entries(activeFilters).every(([key, values]) => {
+    return rows.filter((row) =>
+      Object.entries(activeFilters).every(([key, values]) => {
         if (!values.length) return true;
         const rowKey = (FILTER_KEY_MAP[key] ?? key) as keyof StudyRow;
-        const cellValue = String(row[rowKey] ?? "");
-        return values.includes(cellValue);
-      });
-    });
+        return values.includes(String(row[rowKey] ?? ""));
+      })
+    );
   }, [rows, activeFilters]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey || !sortDir) return filteredRows;
     return [...filteredRows].sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      const av = cellValue({ key: sortKey } as ColNode, a);
+      const bv = cellValue({ key: sortKey } as ColNode, b);
+      // push N/A to the end regardless of direction
+      const aNA = av === "N/A";
+      const bNA = bv === "N/A";
+      if (aNA && bNA) return 0;
+      if (aNA) return 1;
+      if (bNA) return -1;
+      let cmp: number;
+      if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+      else cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [filteredRows, sortKey, sortDir]);
 
-  const handleSort = (key: keyof StudyRow) => {
+  const handleSort = (key: string) => {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : d === "desc" ? null : "asc"));
       if (sortDir === null) setSortKey(null);
@@ -114,136 +232,177 @@ export function SummaryTable({ rows, activeFilters, highlightId }: SummaryTableP
     }
   };
 
-  const toggleColumn = (key: keyof StudyRow) => {
-    const visible = columns.filter((c) => c.visible);
-    if (visible.length === 1 && visible[0].key === key) return; // keep at least 1
-    setColumns((cols) => cols.map((c) => (c.key === key ? { ...c, visible: !c.visible } : c)));
+  const SortIcon = ({ colKey }: { colKey: string }) => {
+    if (sortKey !== colKey) return <ChevronsUpDown size={12} className="text-white/40" />;
+    if (sortDir === "asc") return <ChevronUp size={12} className="text-white" />;
+    if (sortDir === "desc") return <ChevronDown size={12} className="text-white" />;
+    return <ChevronsUpDown size={12} className="text-white/40" />;
   };
 
-  const SortIcon = ({ colKey }: { colKey: keyof StudyRow }) => {
-    if (sortKey !== colKey) return <ChevronsUpDown size={12} className="text-gray-300" />;
-    if (sortDir === "asc") return <ChevronUp size={12} className="text-[#2E75B5]" />;
-    if (sortDir === "desc") return <ChevronDown size={12} className="text-[#2E75B5]" />;
-    return <ChevronsUpDown size={12} className="text-gray-300" />;
+  const stickyBodyStyle = (node: ColNode, bg: string): React.CSSProperties | undefined => {
+    if (!STICKY_KEYS.has(node.key)) return undefined;
+    const width = STICKY_WIDTH[node.key];
+    return {
+      position: "sticky",
+      left: stickyLeft[node.key],
+      width,
+      minWidth: width,
+      maxWidth: width,
+      background: bg,
+      zIndex: 20,
+      boxShadow: node.key === lastStickyKey ? "2px 0 5px -2px rgba(16,24,40,0.15)" : undefined,
+    };
+  };
+
+  const renderCell = (node: ColNode, row: StudyRow) => {
+    const val = cellValue(node, row);
+    if (val === "N/A") return <span className="text-gray-300">N/A</span>;
+    if (node.key === K_AUTHOR) return <span className="font-medium text-gray-900">{String(val)}</span>;
+    if (node.key === K_NCT) return <span className="font-mono text-[11px] text-gray-500">{String(val)}</span>;
+    if (node.key === K_PHASE)
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold",
+            val === "Phase III" ? "bg-blue-50 text-[#2E75B5]" : "bg-gray-100 text-gray-500"
+          )}
+        >
+          {String(val)}
+        </span>
+      );
+    if (node.key === "trial_characteristics.treatment_class")
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-600">
+          {String(val)}
+        </span>
+      );
+    return String(val);
   };
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Toolbar */}
       <div className="flex items-center justify-between">
         <span className="text-[13px] text-gray-500 font-['Inter',sans-serif]">
           {sortedRows.length} of {rows.length} studies
         </span>
-        <div className="relative">
-          <button
-            onClick={() => setColPanelOpen((o) => !o)}
-            className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-all",
-              colPanelOpen
-                ? "border-[#2E75B5] bg-[#E4F0FE] text-[#2E75B5]"
-                : "border-gray-200 text-gray-600 hover:border-gray-300"
-            )}
-          >
-            <SlidersHorizontal size={13} />
-            Columns
-          </button>
-
-          {colPanelOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setColPanelOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-2">
-                {columns.map((col) => (
-                  <label
-                    key={col.key}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={col.visible}
-                      onChange={() => toggleColumn(col.key)}
-                      className="rounded accent-[#2E75B5]"
-                    />
-                    <span className="text-[13px] text-gray-700 font-['Inter',sans-serif]">{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <span className="text-[12px] text-gray-400 font-['Inter',sans-serif]">
+          {leaves.length} columns · scroll horizontally →
+        </span>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="w-full text-[12px] font-['Inter',sans-serif] border-collapse">
+        <table className="text-[12px] font-['Inter',sans-serif] border-collapse">
+          <caption className="sr-only">
+            Summary of included studies in the mCRPC living systematic review
+          </caption>
+
+          {/* Hierarchical, color-coded header — one <tr> per depth level */}
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-100">
-              {visibleColumns.map((col) => (
-                <th
-                  key={col.key}
-                  className="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] cursor-pointer select-none whitespace-nowrap"
-                  scope="col"
-                  onClick={() => handleSort(col.key)}
-                >
-                  <div className="flex items-center gap-1">
-                    {col.label}
-                    <SortIcon colKey={col.key} />
-                  </div>
-                </th>
-              ))}
-            </tr>
+            {headerRows.map((rowNodes, ri) => (
+              <tr key={ri}>
+                {rowNodes.map((pn) => {
+                  const bg = levelColor(pn.depth);
+                  const leaf = pn.children.length === 0;
+                  if (!leaf) {
+                    // internal grouping node → span its visible leaves; label only
+                    const isCategory = pn.depth === 1;
+                    return (
+                      <th
+                        key={pn.node.key}
+                        colSpan={pn.leafCount}
+                        scope="colgroup"
+                        className="px-3 py-2 text-left whitespace-nowrap font-semibold text-white text-[11px] tracking-wide border-r border-white/15"
+                        style={{ background: bg }}
+                      >
+                        {isCategory ? (
+                          // Category label pins past the sticky-left columns, then
+                          // scrolls out as the next category enters.
+                          <span
+                            className="inline-block uppercase"
+                            style={{ position: "sticky", left: stickyTotal + 12 }}
+                          >
+                            {pn.node.label}
+                          </span>
+                        ) : (
+                          pn.node.label
+                        )}
+                      </th>
+                    );
+                  }
+                  // leaf node → span remaining rows; carries the sort control
+                  return (
+                    <th
+                      key={pn.node.key}
+                      rowSpan={maxDepth - pn.depth + 1}
+                      scope="col"
+                      onClick={() => handleSort(pn.node.key)}
+                      className="px-4 py-2 text-left align-bottom font-semibold text-white uppercase tracking-wide text-[10px] cursor-pointer select-none whitespace-nowrap border-r border-white/15"
+                      style={
+                        STICKY_KEYS.has(pn.node.key)
+                          ? {
+                              position: "sticky",
+                              left: stickyLeft[pn.node.key],
+                              width: STICKY_WIDTH[pn.node.key],
+                              minWidth: STICKY_WIDTH[pn.node.key],
+                              maxWidth: STICKY_WIDTH[pn.node.key],
+                              background: bg,
+                              zIndex: 30,
+                              boxShadow: pn.node.key === lastStickyKey ? "2px 0 5px -2px rgba(16,24,40,0.25)" : undefined,
+                            }
+                          : { background: bg }
+                      }
+                    >
+                      <div className="flex items-center gap-1">
+                        {pn.node.label}
+                        <SortIcon colKey={pn.node.key} />
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
           </thead>
+
           <tbody>
-            {sortedRows.length === 0 ? (
+            {leaves.length === 0 ? (
               <tr>
-                <td colSpan={visibleColumns.length} className="text-center py-16 text-gray-400 text-[13px]">
+                <td className="text-center py-16 text-gray-400 text-[13px]">Select at least one column from the sidebar.</td>
+              </tr>
+            ) : sortedRows.length === 0 ? (
+              <tr>
+                <td colSpan={leaves.length} className="text-center py-16 text-gray-400 text-[13px]">
                   No studies match the active filters.
                 </td>
               </tr>
             ) : (
               sortedRows.map((row, i) => {
                 const isHl = !!highlightId && rowMatchesHighlight(row, highlightId);
-                return (<tr
-                  key={row.id}
-                  ref={isHl && !hlRef.current ? (el) => { hlRef.current = el; } : undefined}
-                  className={cn(
-                    "border-b border-gray-50 transition-all hover:bg-blue-50/30",
-                    isHl
-                      ? "bg-[#E4F0FE] ring-2 ring-inset ring-[#2E75B5]/30 animate-[highlight-fade_2.5s_ease-in-out_forwards]"
-                      : i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                  )}
-                >
-                  {visibleColumns.map((col) => {
-                    const val = row[col.key];
-                    return (
-                      <td key={col.key} className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                        {col.key === "study" ? (
-                          <span className="font-medium text-gray-900">{String(val ?? "—")}</span>
-                        ) : col.key === "phase" ? (
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold",
-                            val === "Phase III" ? "bg-blue-50 text-[#2E75B5]" : "bg-gray-100 text-gray-500"
-                          )}>
-                            {String(val ?? "—")}
-                          </span>
-                        ) : col.key === "treatmentClass" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-600">
-                            {String(val ?? "—")}
-                          </span>
-                        ) : (
-                          String(val ?? "—")
-                        )}
+                const rowBg = isHl ? "#E4F0FE" : i % 2 === 0 ? "#ffffff" : "#fafafa";
+                return (
+                  <tr
+                    key={row.id}
+                    ref={isHl && !hlRef.current ? (el) => { hlRef.current = el; } : undefined}
+                    className={cn(
+                      "border-b border-gray-50 transition-all hover:bg-blue-50/30",
+                      isHl && "ring-2 ring-inset ring-[#2E75B5]/30 animate-[highlight-fade_2.5s_ease-in-out_forwards]"
+                    )}
+                    style={{ background: rowBg }}
+                  >
+                    {leaves.map((pn) => (
+                      <td
+                        key={pn.node.key}
+                        className="px-4 py-3 text-gray-700 whitespace-nowrap border-r border-gray-50"
+                        style={stickyBodyStyle(pn.node, rowBg)}
+                      >
+                        {renderCell(pn.node, row)}
                       </td>
-                    );
-                  })}
-                </tr>
+                    ))}
+                  </tr>
                 );
               })
             )}
           </tbody>
         </table>
-        <caption className="sr-only">
-          Summary of included studies in the mCRPC living systematic review
-        </caption>
       </div>
     </div>
   );

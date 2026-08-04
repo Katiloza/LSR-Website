@@ -4,6 +4,7 @@ import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
 import { SectionCard } from "../components/SectionCard";
 import { GlobalSearch } from "../components/GlobalSearch";
+import { FilterBar } from "../components/FilterBar";
 
 const stats = [
   { icon: BookOpen,      value: "47",        label: "Studies included" },
@@ -56,8 +57,10 @@ export function HomePage() {
               {/* Search */}
               <GlobalSearch
                 placeholder="Search studies, outcomes, treatments, interventions…"
-                className="w-full max-w-2xl mb-10 mx-auto"
+                className="w-full max-w-2xl mb-4 mx-auto"
               />
+
+              <FilterBar className="w-full max-w-2xl mb-10 mx-auto text-left" align="center" />
 
               {/* Stats — inside hero */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { GitBranch, Search as SearchIcon, Filter, Users, CheckCircle, XCircle } from "lucide-react";
 import { GlobalSearch } from "../components/GlobalSearch";
 import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
@@ -8,6 +7,7 @@ import { NavPanelShell } from "../components/NavPanelShell";
 import { PrismaFlowchart, PrismaStage } from "../components/PrismaFlowchart";
 import { StudyListPanel } from "../components/StudyListPanel";
 import { PrismaLivingSearch } from "../components/PrismaLivingSearch";
+import { FilterBar } from "../components/FilterBar";
 import { cn } from "../lib/utils";
 
 type PrismaView = "current-state" | "initial-search" | "living-search";
@@ -18,113 +18,58 @@ const VIEW_OPTIONS: { id: PrismaView; label: string }[] = [
   { id: "living-search", label: "Living Search" },
 ];
 
+const INCLUDED_STUDIES = [
+  { title: "ARCHES: Enzalutamide + ADT vs placebo + ADT in mHSPC", year: 2019, pmid: "31157964" },
+  { title: "TITAN: Apalutamide + ADT vs placebo in mHSPC", year: 2019, pmid: "31157962" },
+  { title: "MAGNITUDE: Niraparib + abiraterone vs placebo + abiraterone", year: 2022, pmid: "35147311" },
+  { title: "PROpel: Olaparib + abiraterone vs placebo + abiraterone in mCRPC", year: 2022, pmid: "35026162" },
+  { title: "TALAPRO-2: Talazoparib + enzalutamide vs placebo + enzalutamide", year: 2023, pmid: "37062857" },
+  { title: "TRITON3: Rucaparib vs physician's choice in mCRPC BRCA1/2", year: 2023, pmid: "36795891" },
+  { title: "VISION: 177Lu-PSMA-617 + standard of care in mCRPC", year: 2021, pmid: "34161052" },
+  { title: "TheraP: 177Lu-PSMA-617 vs cabazitaxel in mCRPC", year: 2021, pmid: "33581798" },
+  { title: "CARD: Cabazitaxel vs abiraterone/enzalutamide in mCRPC", year: 2019, pmid: "31665565" },
+  { title: "ENZAMET: Enzalutamide + ADT vs standard NSAA in mHSPC", year: 2019, pmid: "31157965" },
+];
+
 const CURRENT_STATE_STAGES: PrismaStage[] = [
-  {
-    id: "databases",
-    label: "Initial search from databases",
-    count: 26595,
-    sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov",
-    type: "total",
-    studies: [],
-  },
-  {
-    id: "auto-update",
-    label: "Records identified through automatic update",
-    count: 7494,
-    sublabel: "Monthly automated search",
-    type: "total",
-    studies: [],
-  },
-  {
-    id: "manual-update",
-    label: "Records identified through manual update",
-    count: 38,
-    sublabel: "Grey literature, expert contact",
-    type: "total",
-    studies: [],
-  },
-  {
-    id: "screened",
-    label: "Records screened (title/abstract)",
-    count: 4963,
-    type: "include",
-    studies: [],
-  },
-  {
-    id: "excluded-screening",
-    label: "Records excluded at screening",
-    count: 4712,
-    sublabel: "Not RCTs, wrong population, wrong intervention",
-    type: "exclude",
-    studies: [],
-  },
-  {
-    id: "sought",
-    label: "Reports sought for retrieval",
-    count: 251,
-    type: "include",
-    studies: [],
-  },
-  {
-    id: "not-retrieved",
-    label: "Reports not retrieved",
-    count: 8,
-    type: "exclude",
-    studies: [],
-  },
-  {
-    id: "assessed",
-    label: "Reports assessed for eligibility",
-    count: 243,
-    type: "include",
-    studies: [],
-  },
-  {
-    id: "excluded-eligibility",
-    label: "Reports excluded (full text)",
-    count: 196,
-    sublabel: "Wrong comparator (n=82), ongoing trial (n=67), wrong outcome (n=47)",
-    type: "exclude",
-    studies: [],
-  },
-  {
-    id: "included",
-    label: "Studies included in review",
-    count: 47,
-    sublabel: "Representing 47 unique RCTs",
-    type: "include",
-    studies: [
-      { title: "ARCHES: Enzalutamide + ADT vs placebo + ADT in mHSPC", year: 2019, pmid: "31157964" },
-      { title: "TITAN: Apalutamide + ADT vs placebo in mHSPC", year: 2019, pmid: "31157962" },
-      { title: "MAGNITUDE: Niraparib + abiraterone vs placebo + abiraterone", year: 2022, pmid: "35147311" },
-      { title: "PROpel: Olaparib + abiraterone vs placebo + abiraterone in mCRPC", year: 2022, pmid: "35026162" },
-      { title: "TALAPRO-2: Talazoparib + enzalutamide vs placebo + enzalutamide", year: 2023, pmid: "37062857" },
-      { title: "TRITON3: Rucaparib vs physician's choice in mCRPC BRCA1/2", year: 2023, pmid: "36795891" },
-      { title: "VISION: 177Lu-PSMA-617 + standard of care in mCRPC", year: 2021, pmid: "34161052" },
-      { title: "TheraP: 177Lu-PSMA-617 vs cabazitaxel in mCRPC", year: 2021, pmid: "33581798" },
-      { title: "CARD: Cabazitaxel vs abiraterone/enzalutamide in mCRPC", year: 2019, pmid: "31665565" },
-      { title: "ENZAMET: Enzalutamide + ADT vs standard NSAA in mHSPC", year: 2019, pmid: "31157965" },
-    ],
-  },
+  // Identification (3 sources, displayed as horizontal row)
+  { id: "databases",    label: "Initial search from databases",                    count: 26595, sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov", type: "total",     studies: [] },
+  { id: "auto-update",  label: "Records identified through automatic update",       count: 7494,  sublabel: "Monthly automated search",                    type: "total",     studies: [] },
+  { id: "manual-update",label: "Records identified through manual update",          count: 38,    sublabel: "Grey literature, expert contact",              type: "total",     studies: [] },
+  // Deduplication
+  { id: "total-identified",   label: "Total Records Identified",                   count: 34127, type: "include",   studies: [] },
+  { id: "records-after-dedup",label: "Records after removing duplicates",           count: 29419, type: "include",   studies: [] },
+  { id: "duplicates",         label: "Duplicates Records",                          count: 4708,  type: "exclude",   studies: [] },
+  // Screening
+  { id: "records-screened",   label: "Records screened",                            count: 28514, type: "include",   studies: [] },
+  { id: "currently-screening",label: "Currently screening",                         count: 905,   type: "screening", studies: [] },
+  { id: "excluded-title",     label: "Excluded by title",                           count: 25396, type: "exclude",   studies: [] },
+  { id: "excluded-abstract",  label: "Excluded by abstract",                        count: 1182,  type: "exclude",   studies: [] },
+  // Eligibility
+  { id: "fulltext-assessed",  label: "Full-text assessed for eligibility",          count: 1936,  type: "include",   studies: [] },
+  { id: "currently-screening-ft", label: "Currently screening full text",           count: 181,   type: "screening", studies: [] },
+  { id: "excluded-fulltext",  label: "Excluded by full text review",                count: 1755,  type: "exclude",   studies: [] },
+  // Included — dark blue
+  { id: "studies-systematic", label: "Studies included in systematic review",       count: 181,   sublabel: "n=141 studies", type: "final", studies: INCLUDED_STUDIES },
+  { id: "studies-meta",       label: "Studies included in meta-analysis",           count: 74,    sublabel: "n=58 studies",  type: "final", studies: [] },
 ];
 
 const INITIAL_STATE_STAGES: PrismaStage[] = [
-  {
-    id: "databases",
-    label: "Initial search from databases",
-    count: 26595,
-    sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov",
-    type: "total",
-    studies: [],
-  },
-  // auto-update and manual-update are omitted — initial search has only one identification source
-  ...CURRENT_STATE_STAGES.filter((s) => !["databases", "auto-update", "manual-update"].includes(s.id)).map((s) => ({
-    ...s,
-    count: s.id === "screened" ? 26595 : s.id === "excluded-screening" ? 25198 :
-      s.id === "sought" ? 1397 : s.id === "not-retrieved" ? 23 :
-      s.id === "assessed" ? 1374 : s.id === "excluded-eligibility" ? 1340 :
-      s.id === "included" ? 34 : s.count,
-  })),
+  // Identification — single source only
+  { id: "databases",          label: "Initial search from databases",               count: 26595, sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov", type: "total",   studies: [] },
+  // Deduplication
+  { id: "records-after-dedup",label: "Records after removing duplicates",           count: 21887, type: "include",   studies: [] },
+  { id: "duplicates",         label: "Duplicates Records",                          count: 4708,  type: "exclude",   studies: [] },
+  // Screening
+  { id: "records-screened",   label: "Records screened",                            count: 21887, type: "include",   studies: [] },
+  { id: "excluded-title",     label: "Excluded by title",                           count: 20187, type: "exclude",   studies: [] },
+  { id: "excluded-abstract",  label: "Excluded by abstract",                        count: 478,   type: "exclude",   studies: [] },
+  // Eligibility
+  { id: "fulltext-assessed",  label: "Full-text assessed for eligibility",          count: 1222,  type: "include",   studies: [] },
+  { id: "excluded-fulltext",  label: "Excluded by full text review",                count: 1068,  type: "exclude",   studies: [] },
+  // Included — dark blue
+  { id: "studies-systematic", label: "Studies included in systematic review",       count: 154,   sublabel: "n=78 studies",  type: "final", studies: INCLUDED_STUDIES },
+  { id: "studies-meta",       label: "Studies included in meta-analysis",           count: 62,    sublabel: "n=51 studies",  type: "final", studies: [] },
 ];
 
 const LIVING_SEARCH_DATA = [
@@ -181,7 +126,7 @@ export function PrismaPage() {
   // When navigating from search with a study highlight, open the included stage
   useEffect(() => {
     if (!highlightStudy) return;
-    const includedStage = CURRENT_STATE_STAGES.find((s) => s.id === "included");
+    const includedStage = CURRENT_STATE_STAGES.find((s) => s.id === "studies-systematic");
     if (includedStage) {
       setSelectedStage(includedStage);
       setActiveNodeId("included");
@@ -226,38 +171,12 @@ export function PrismaPage() {
               ))}
             </div>
 
-            {activeView !== "living-search" && (
-              <div className="flex flex-col gap-3">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                  Summary
-                </span>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <SearchIcon size={14} className="text-gray-400" />
-                    <span className="text-[12px] text-gray-600 font-['Inter',sans-serif]">
-                      {activeView === "current-state" ? "34,127" : "26,595"} records screened
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Filter size={14} className="text-gray-400" />
-                    <span className="text-[12px] text-gray-600 font-['Inter',sans-serif]">
-                      {activeView === "current-state" ? "243" : "1,374"} assessed for eligibility
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle size={14} className="text-[#2E75B5]" />
-                    <span className="text-[12px] text-[#2E75B5] font-semibold font-['Inter',sans-serif]">
-                      {activeView === "current-state" ? "47" : "34"} studies included
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </NavPanelShell>
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Main content — no overflow container here so the flow's section
+            anchor labels can stick relative to the page as the user scrolls */}
+        <div className="flex-1 flex flex-col min-w-0">
           <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
             {/* Page header */}
             <div
@@ -279,6 +198,8 @@ export function PrismaPage() {
               </p>
 
               <GlobalSearch placeholder="Search studies, databases, screening stages…" className="mt-8" />
+
+              <FilterBar className="mt-4" />
             </div>
 
             <div className="p-8">

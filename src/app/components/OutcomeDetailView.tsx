@@ -192,7 +192,7 @@ export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
 
       {/* Overview */}
       <section>
-        <h3 className="text-[18px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">Overview</h3>
+        <h3 className="text-[20px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">Overview</h3>
         <div className="grid grid-cols-3 gap-4">
           <div className="border border-gray-100 rounded-xl p-4 bg-white">
             <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Summary Effect</p>
@@ -218,7 +218,7 @@ export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
 
       {/* Domain Assessment */}
       <section>
-        <h3 className="text-[18px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">Domain Assessment</h3>
+        <h3 className="text-[20px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">Domain Assessment</h3>
         <div className="grid grid-cols-5 gap-3 mb-6">
           {(Object.keys(DOMAIN_LABELS) as DomainKey[]).map((key) => {
             const entry = domains[key];
