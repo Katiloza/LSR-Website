@@ -94,31 +94,24 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
         isActive ? "ring-2 ring-blue-100 scale-[1.002]" : ""
       )}
     >
-      <div className="mb-6 border-b border-gray-50 pb-4">
-        <h3 className="font-medium font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
-          {data.title}
-        </h3>
-        {/* Named comparison — was previously only surfaced inside the hover
-            tooltip; now always visible so a reader never sees a bare HR
-            without knowing what's being compared to what. */}
-        <p className="mt-1.5 text-[13px] text-gray-500 font-['Inter',sans-serif]">
-          <span className="font-semibold text-gray-700 capitalize">{treatmentLabel}</span>
-          {" "}vs.{" "}
-          <span className="font-semibold text-gray-700 capitalize">{controlLabel}</span>
-        </p>
-      </div>
+      <h3 className="font-medium mb-6 border-b border-gray-50 pb-4 font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
+        {data.title}
+      </h3>
 
       <div className="grid grid-cols-12 gap-8">
         {/* Table Side */}
         <div className="col-span-7 overflow-x-auto">
           <table className="w-full text-left font-['Inter',sans-serif]">
+            {/* Every cell is nowrap so each row stays exactly 48px tall — the
+                plot rows on the right use the same fixed 48px pitch, and a
+                wrapped author name would otherwise push the two out of sync. */}
             <thead>
               <tr className="border-b border-[#D0D5DC]">
-                <th className="py-2 text-[12px] font-bold text-[#101318] w-[20%]">Study</th>
-                <th className="py-2 text-[12px] font-bold text-[#101318] w-[35%]">Trial Name</th>
-                <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[10%]">HR</th>
-                <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[15%]">95% CI</th>
-                <th className="py-2 text-[12px] font-bold text-[#101318] text-right w-[20%]">Weight</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] w-[20%] whitespace-nowrap">Study</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] w-[35%] whitespace-nowrap">Trial Name</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[10%] whitespace-nowrap">HR</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[15%] whitespace-nowrap">95% CI</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] text-right w-[20%] whitespace-nowrap">Weight</th>
               </tr>
             </thead>
             <tbody className="text-[13px]">
@@ -137,18 +130,18 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
                   onClick={() => openCitation(study.trialName)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCitation(study.trialName); } }}
                 >
-                  <td className="py-2 text-[#0663AD] hover:underline">{study.name}</td>
-                  <td className="py-2 text-[#101318] font-medium">{study.trialName}</td>
-                  <td className="py-2 text-[#101318] text-center tabular-nums">{study.hr.toFixed(2)}</td>
-                  <td className="py-2 text-[#101318] text-center tabular-nums">[{study.ci[0].toFixed(2)}; {study.ci[1].toFixed(2)}]</td>
-                  <td className="py-2 text-[#101318] text-right tabular-nums">{study.weight.toFixed(1)}%</td>
+                  <td className="py-2 text-[#0663AD] hover:underline whitespace-nowrap">{study.name}</td>
+                  <td className="py-2 text-[#101318] font-medium whitespace-nowrap">{study.trialName}</td>
+                  <td className="py-2 text-[#101318] text-center tabular-nums whitespace-nowrap">{study.hr.toFixed(2)}</td>
+                  <td className="py-2 text-[#101318] text-center tabular-nums whitespace-nowrap">[{study.ci[0].toFixed(2)}; {study.ci[1].toFixed(2)}]</td>
+                  <td className="py-2 text-[#101318] text-right tabular-nums whitespace-nowrap">{study.weight.toFixed(1)}%</td>
                 </tr>
               ))}
               <tr className="border-b-3 border-[#101318] bg-gray-50/30 h-[48px]">
-                <td colSpan={2} className="py-2 font-bold text-[#101318]">Random effects model</td>
-                <td className="py-2 font-bold text-[#101318] text-center tabular-nums">{data.pooledHr.toFixed(2)}</td>
-                <td className="py-2 font-bold text-[#101318] text-center tabular-nums">[{data.pooledCi[0].toFixed(2)}; {data.pooledCi[1].toFixed(2)}]</td>
-                <td className="py-2 font-bold text-[#101318] text-right tabular-nums">100%</td>
+                <td colSpan={2} className="py-2 font-bold text-[#101318] whitespace-nowrap">Random effects model</td>
+                <td className="py-2 font-bold text-[#101318] text-center tabular-nums whitespace-nowrap">{data.pooledHr.toFixed(2)}</td>
+                <td className="py-2 font-bold text-[#101318] text-center tabular-nums whitespace-nowrap">[{data.pooledCi[0].toFixed(2)}; {data.pooledCi[1].toFixed(2)}]</td>
+                <td className="py-2 font-bold text-[#101318] text-right tabular-nums whitespace-nowrap">100%</td>
               </tr>
             </tbody>
           </table>
@@ -158,8 +151,11 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
         </div>
 
         {/* Plot Side */}
+        {/* Plot geometry mirrors the table exactly: the top padding matches the
+            thead height and every row (studies + pooled) is the same fixed
+            48px as its table row, so markers always sit beside their row. */}
         <div className="col-span-5 flex flex-col relative px-[0px] pt-[36px] pb-[72px] m-[0px]">
-          <div className="w-full relative border-l border-b border-gray-300 h-full min-h-[300px]">
+          <div className="w-full relative border-l border-b border-gray-300">
             {/* Axis Title */}
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[13px] font-bold text-gray-900 font-['Inter',sans-serif]">
               Hazard Ratio (95% CI)
@@ -201,14 +197,14 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
             </div>
 
             {/* Individual Points and Whiskers */}
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col">
               {data.studies.map((study) => {
                 const markerSize = Math.max(6, 4 + (study.weight * 0.8)); // Scaled box size
                 return (
                   <div
                     key={study.id}
                     className={cn(
-                      "relative h-[48px] w-full transition-colors",
+                      "relative h-[48px] shrink-0 w-full transition-colors",
                       hoveredStudyId === study.id ? "bg-blue-50/20" : ""
                     )}
                   >
@@ -249,8 +245,9 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
                 );
               })}
 
-              {/* Pooled Estimate (Diamond) */}
-              <div className="relative h-[48px] w-full mt-auto">
+              {/* Pooled Estimate (Diamond) — same fixed pitch, directly after
+                  the study rows so it lines up with the Random-effects row */}
+              <div className="relative h-[48px] shrink-0 w-full">
                 <div
                   className="absolute top-1/2 -translate-y-1/2 z-10"
                   style={{

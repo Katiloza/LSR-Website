@@ -82,18 +82,6 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
 
   return (
     <div className="flex flex-col gap-0">
-      {/* Comparison — was previously screen-reader-only text on the table caption;
-          surfaced visibly so an effect estimate is never shown without stating
-          what's being compared to what. */}
-      <div className="flex items-center gap-2 px-1 pb-3">
-        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Comparison</span>
-        <span className="text-[13px] font-medium text-gray-700 font-['Inter',sans-serif]">{comparison}</span>
-        <span className="text-gray-300">·</span>
-        <span className="text-[12px] text-gray-400 font-['Inter',sans-serif]">
-          Investigational regimen vs. its trial-matched control arm — see Summary Tables for the exact drugs used in each trial
-        </span>
-      </div>
-
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-6 px-1 py-3 border-b border-gray-100 mb-4">
         {/* Risk per dropdown */}
