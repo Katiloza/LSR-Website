@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { cn } from "../lib/utils";
 import { COLUMN_SCHEMA, ColNode } from "../lib/summaryColumns";
+import { useCitation } from "../lib/CitationContext";
 
 export type { ColNode } from "../lib/summaryColumns";
 export { COLUMN_SCHEMA } from "../lib/summaryColumns";
@@ -85,14 +86,15 @@ function cellValue(node: ColNode, row: StudyRow): string | number {
 
 // ─── Depth → level color (header cells only) ──────────────────────────────────
 // L0 category · L1 main · L2 sub · L3 sub-sub · L4 sub-sub-sub.
-// Softened/desaturated so red/blue/green don't get noisy across a very wide
-// header; white text throughout for contrast. Mapping (by depth) is preserved.
+// Neutral monochrome slate ramp (darkest → lightest) so depth is still legible
+// at a glance without the header competing for attention with the data below —
+// usability feedback flagged the earlier rainbow scheme as too loud.
 export const LEVEL_COLORS = [
-  "#6D28D9", // L0 — purple (overarching category band)
-  "#243244", // L1 — near-black navy (main column category)
-  "#A24444", // L2 — muted red (subcolumn)
-  "#2E75B5", // L3 — brand blue (sub-subcolumn)
-  "#3F9256", // L4 — muted green (sub-sub-subcolumn)
+  "#1E293B", // L0 — slate-800 (overarching category band)
+  "#334155", // L1 — slate-700 (main column category)
+  "#475569", // L2 — slate-600 (subcolumn)
+  "#64748B", // L3 — slate-500 (sub-subcolumn)
+  "#94A3B8", // L4 — slate-400 (sub-sub-subcolumn)
 ];
 const levelColor = (depth: number) => LEVEL_COLORS[Math.min(depth - 1, LEVEL_COLORS.length - 1)];
 
@@ -153,6 +155,7 @@ const FILTER_KEY_MAP: Record<string, keyof StudyRow> = {
 
 export function SummaryTable({ rows, activeFilters, highlightId, checkedLeafKeys }: SummaryTableProps) {
   const hlRef = useRef<HTMLTableRowElement | null>(null);
+  const { openCitation } = useCitation();
 
   useEffect(() => {
     if (highlightId && hlRef.current) {
@@ -257,6 +260,8 @@ export function SummaryTable({ rows, activeFilters, highlightId, checkedLeafKeys
   const renderCell = (node: ColNode, row: StudyRow) => {
     const val = cellValue(node, row);
     if (val === "N/A") return <span className="text-gray-300">N/A</span>;
+    if (node.key === K_TRIALNAME)
+      return <span className="font-semibold text-[#2E75B5] group-hover:underline">{String(val)}</span>;
     if (node.key === K_AUTHOR) return <span className="font-medium text-gray-900">{String(val)}</span>;
     if (node.key === K_NCT) return <span className="font-mono text-[11px] text-gray-500">{String(val)}</span>;
     if (node.key === K_PHASE)
@@ -382,8 +387,13 @@ export function SummaryTable({ rows, activeFilters, highlightId, checkedLeafKeys
                   <tr
                     key={row.id}
                     ref={isHl && !hlRef.current ? (el) => { hlRef.current = el; } : undefined}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View study record for ${row.trialName}`}
+                    onClick={() => openCitation(row.trialName)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCitation(row.trialName); } }}
                     className={cn(
-                      "border-b border-gray-50 transition-all hover:bg-blue-50/30",
+                      "group border-b border-gray-50 transition-all hover:bg-blue-50/30 cursor-pointer focus:outline-none focus:bg-blue-50/40",
                       isHl && "ring-2 ring-inset ring-[#2E75B5]/30 animate-[highlight-fade_2.5s_ease-in-out_forwards]"
                     )}
                     style={{ background: rowBg }}

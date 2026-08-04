@@ -10,14 +10,9 @@ const PROJECTS = [
 export function TopNav() {
   const [projectOpen, setProjectOpen] = useState(false);
   const [activeProject, setActiveProject] = useState("mcrpc");
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const currentProject = PROJECTS.find((p) => p.id === activeProject)!;
-
-  const tabs = [
-    { label: "Living Guidelines", active: false },
-    { label: "About Us", active: false },
-    { label: "Contact Us", active: false },
-  ];
 
   return (
     <nav className="h-[72px] bg-white border-b border-gray-200 flex items-center px-6 sticky top-0 z-[60] w-full gap-4">
@@ -28,7 +23,7 @@ export function TopNav() {
 
       {/* Right nav: project switcher inline with links */}
       <div className="flex items-center gap-2 ml-auto">
-        {/* Project Switcher */}
+        {/* Project Switcher — relabelled "Research", same dropdown pattern */}
         <div className="relative">
           <button
             onClick={() => setProjectOpen((o) => !o)}
@@ -41,7 +36,7 @@ export function TopNav() {
             aria-haspopup="listbox"
             aria-expanded={projectOpen}
           >
-            <span>Living Systematic Reviews</span>
+            <span>Research</span>
             <span className="text-gray-400">·</span>
             <span className="font-semibold text-[#2E75B5]">{currentProject.label}</span>
             <ChevronDown size={13} className={cn("text-gray-400 transition-transform", projectOpen && "rotate-180")} />
@@ -84,14 +79,57 @@ export function TopNav() {
 
         <div className="w-px h-5 bg-gray-200 mx-2" />
 
-        {tabs.map((tab) => (
+        {/* Placeholder stubs — future build work, scoped separately */}
+        <button
+          className="text-[13px] font-medium transition-all px-4 py-2 rounded-lg text-gray-400 cursor-default flex items-center gap-1.5"
+          title="Coming soon"
+        >
+          For Patients
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-wide">Soon</span>
+        </button>
+        <button
+          className="text-[13px] font-medium transition-all px-4 py-2 rounded-lg text-gray-400 cursor-default flex items-center gap-1.5"
+          title="Coming soon"
+        >
+          Clinicians
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-wide">Soon</span>
+        </button>
+
+        {/* About Us — Contact Us folded in as a dropdown item */}
+        <div className="relative">
           <button
-            key={tab.label}
-            className="text-[13px] font-medium transition-all px-4 py-2 rounded-lg text-gray-500 hover:text-gray-900"
+            onClick={() => setAboutOpen((o) => !o)}
+            className={cn(
+              "flex items-center gap-1 text-[13px] font-medium transition-all px-4 py-2 rounded-lg",
+              aboutOpen ? "text-[#1a1a1a] bg-[#E4F0FE]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+            )}
+            aria-haspopup="menu"
+            aria-expanded={aboutOpen}
           >
-            {tab.label}
+            About Us
+            <ChevronDown size={13} className={cn("text-gray-400 transition-transform", aboutOpen && "rotate-180")} />
           </button>
-        ))}
+
+          {aboutOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setAboutOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-50 w-56 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden py-1">
+                <button
+                  onClick={() => setAboutOpen(false)}
+                  className="w-full text-left px-3.5 py-2.5 text-[13px] text-gray-700 hover:bg-blue-50 hover:text-[#2E75B5] transition-colors"
+                >
+                  About Us
+                </button>
+                <button
+                  onClick={() => setAboutOpen(false)}
+                  className="w-full text-left px-3.5 py-2.5 text-[13px] text-gray-700 hover:bg-blue-50 hover:text-[#2E75B5] transition-colors"
+                >
+                  Contact Us
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );
