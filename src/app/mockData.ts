@@ -1,13 +1,18 @@
 import { ForestPlotData } from "./components/ForestPlot";
 import { NavCategory } from "./components/OnPageNav";
 
+// Study counts below reuse the same per-outcome numbers already established
+// in the Summary of Findings table (SoFRow.studyCount) rather than inventing
+// new ones — one outcome, one count, everywhere it's shown. Leaves with no
+// grounded count in this prototype (no matching SoF row) intentionally carry
+// no count rather than a fabricated one.
 export const PRIMARY_NAV_SECTIONS: NavCategory[] = [
   {
     id: "outcome",
     label: "Outcome",
     children: [
-      { id: "os", label: "Overall survival" },
-      { id: "pfs", label: "Progression-free survival" },
+      { id: "os", label: "Overall survival", count: 12 },
+      { id: "pfs", label: "Progression-free survival", count: 14 },
       { id: "ttp", label: "Time to progression" },
     ]
   },
@@ -15,9 +20,9 @@ export const PRIMARY_NAV_SECTIONS: NavCategory[] = [
     id: "response",
     label: "Response",
     children: [
-      { id: "obj", label: "Objective" },
-      { id: "comp", label: "Complete" },
-      { id: "part", label: "Partial" },
+      { id: "obj", label: "Objective", count: 9 },
+      { id: "comp", label: "Complete", count: 7 },
+      { id: "part", label: "Partial", count: 7 },
       { id: "psa", label: "PSA50%" },
     ]
   },
@@ -29,18 +34,18 @@ export const PRIMARY_NAV_SECTIONS: NavCategory[] = [
         id: "all-cause",
         label: "All-cause",
         subItems: [
-          { id: "ae-any", label: "Any grade" },
-          { id: "ae-g3", label: "Grade 3 or higher" },
-          { id: "ae-g5", label: "Grade 5" },
+          { id: "ae-any", label: "Any grade", count: 13 },
+          { id: "ae-g3", label: "Grade 3 or higher", count: 13 },
+          { id: "ae-g5", label: "Grade 5", count: 10 },
         ]
       },
       {
         id: "treat-rel",
         label: "Treatment related",
         subItems: [
-          { id: "trae-any", label: "Any grade" },
-          { id: "trae-g3", label: "Grade 3 or higher" },
-          { id: "trae-g5", label: "Grade 5" },
+          { id: "trae-any", label: "Any grade", count: 11 },
+          { id: "trae-g3", label: "Grade 3 or higher", count: 11 },
+          { id: "trae-g5", label: "Grade 5", count: 9 },
         ]
       }
     ]
@@ -52,7 +57,7 @@ export const SENSITIVITY_NAV_SECTIONS: NavCategory[] = [
     id: "brca",
     label: "BRCA status",
     children: [
-      { id: "brca-pos-c1", label: "BRCA positive (cohort 1)" },
+      { id: "brca-pos-c1", label: "BRCA positive (cohort 1)", count: 4 },
       { id: "brca-pos-c2", label: "BRCA positive (cohort 2)" },
       { id: "brca-neg-c1", label: "BRCA negative (cohort 1)" },
       { id: "brca-neg-c2", label: "BRCA negative (cohort 2)" },

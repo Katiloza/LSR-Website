@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { CertaintyBadge, CertaintyLevel } from "./CertaintyBadge";
 import { cn } from "../lib/utils";
+import { useCitation } from "../lib/CitationContext";
 import type { SoFRow } from "./GradeTable";
 
 type DomainRating = "Not serious" | "Serious" | "Very serious" | "Not applicable" | "Undetected";
@@ -163,6 +164,8 @@ interface OutcomeDetailViewProps {
 export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
   const domains = row.domains;
   const [focusedDomain, setFocusedDomain] = useState<DomainKey>("riskOfBias");
+  const { openCitation } = useCitation();
+  const includedTrials = row.includedTrialNames ?? [];
 
   if (!domains) return null;
 
@@ -215,6 +218,33 @@ export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
           </div>
         </div>
       </section>
+
+      {/* Included Studies — each links to its citation (trial name, authors,
+          journal, outbound link) instead of dead-ending on a bare count. */}
+      {includedTrials.length > 0 && (
+        <section>
+          <h3 className="text-[20px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">
+            Included Studies
+          </h3>
+          {includedTrials.length < row.studyCount && (
+            <p className="text-[12px] text-gray-400 mb-3">
+              Showing {includedTrials.length} of {row.studyCount} contributing studies with a study record on file.
+            </p>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            {includedTrials.map((trialName) => (
+              <button
+                key={trialName}
+                onClick={() => openCitation(trialName)}
+                className="flex items-center justify-between gap-2 border border-gray-100 rounded-lg px-3 py-2.5 bg-white hover:border-[#2E75B5] hover:bg-blue-50/30 transition-colors text-left"
+              >
+                <span className="text-[12px] font-semibold text-gray-800">{trialName}</span>
+                <ChevronRight size={13} className="text-gray-300 shrink-0" />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Domain Assessment */}
       <section>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
-import { CertaintyBadge, CertaintyLevel } from "./CertaintyBadge";
+import { ChevronRight, ChevronDown, Info } from "lucide-react";
+import { CertaintyBadge, CertaintyLevel, EffectDirection } from "./CertaintyBadge";
+import { CertaintyColorGuide } from "./CertaintyColorGuide";
 import type { DomainAssessment } from "./OutcomeDetailView";
 
 export interface SoFRow {
@@ -14,9 +15,13 @@ export interface SoFRow {
   absoluteControl: string;
   riskDifference: string;
   certainty: CertaintyLevel;
+  /** Direction of effect — picks the hue in the certainty color guide. */
+  direction: EffectDirection;
   notes?: string;
   heterogeneity?: { i2: string; tau2: string; p: string };
   domains?: DomainAssessment;
+  /** Trial names contributing to this outcome — backs the Overview page's citation links. */
+  includedTrialNames?: string[];
 }
 
 const RISK_PER_OPTIONS = [
@@ -66,16 +71,29 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
   const [showSurvival, setShowSurvival] = useState(true);
   const [showRaw, setShowRaw] = useState(true);
   const [riskPer, setRiskPer] = useState("1000");
+  const [colorGuideOpen, setColorGuideOpen] = useState(false);
 
   // Column visibility derived from toggles
   const showAbsCols = showSurvival;
   const showRdCol = showARD;
   const showCiRow = showCI;
 
-  const colSpan = 3 + (showCI ? 1 : 0) + (showAbsCols ? 2 : 0) + (showRdCol ? 1 : 0) + 1;
+  const colSpan = 2 + (showCI ? 1 : 0) + (showAbsCols ? 2 : 0) + (showRdCol ? 1 : 0) + 1;
 
   return (
     <div className="flex flex-col gap-0">
+      {/* Comparison — was previously screen-reader-only text on the table caption;
+          surfaced visibly so an effect estimate is never shown without stating
+          what's being compared to what. */}
+      <div className="flex items-center gap-2 px-1 pb-3">
+        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Comparison</span>
+        <span className="text-[13px] font-medium text-gray-700 font-['Inter',sans-serif]">{comparison}</span>
+        <span className="text-gray-300">·</span>
+        <span className="text-[12px] text-gray-400 font-['Inter',sans-serif]">
+          Investigational regimen vs. its trial-matched control arm — see Summary Tables for the exact drugs used in each trial
+        </span>
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-6 px-1 py-3 border-b border-gray-100 mb-4">
         {/* Risk per dropdown */}
@@ -107,17 +125,15 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
           </caption>
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
-              <th scope="col" className="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] min-w-[180px]">
+              <th scope="col" className="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] min-w-[200px]">
                 Outcome
-              </th>
-              <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] whitespace-nowrap">
-                Studies (n)
               </th>
               <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] whitespace-nowrap">
                 Participants
               </th>
               <th scope="col" className="text-center px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] whitespace-nowrap">
                 Relative effect{showCiRow ? " (95% CI)" : ""}
+                <span className="block normal-case font-normal text-gray-400 text-[9px] tracking-normal mt-0.5">Intervention vs. control</span>
               </th>
               {showAbsCols && (
                 <>
@@ -162,10 +178,11 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
                   <td className="px-4 py-3 text-[13px]">
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium text-gray-900 group-hover:text-[#2E75B5] transition-colors">{row.outcome}</span>
+                      {/* Studies (n) column removed — count folded in here instead. */}
+                      <span className="text-[11px] text-gray-400 tabular-nums shrink-0">n={row.studyCount}</span>
                       {onRowClick && <ChevronRight size={13} className="text-gray-300 group-hover:text-[#2E75B5] shrink-0 transition-colors" />}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-600 tabular-nums">{row.studyCount}</td>
                   <td className="px-4 py-3 text-right text-gray-600 tabular-nums">{row.participantCount.toLocaleString()}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="font-medium text-gray-900">{row.relativeEffect}</div>
@@ -181,7 +198,7 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
                     <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums">{row.riskDifference}</td>
                   )}
                   <td className="px-4 py-3 text-center">
-                    <CertaintyBadge level={row.certainty} />
+                    <CertaintyBadge level={row.certainty} direction={row.direction} />
                   </td>
                 </tr>
                 );
@@ -192,16 +209,27 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
       </div>
 
       {/* Certainty legend — below the table */}
-      <div className="flex flex-wrap items-center gap-4 px-2 pt-3">
-        <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide font-['Articulat_CF',sans-serif]">
-          Certainty of evidence:
-        </span>
-        {(["High", "Moderate", "Low", "Very Low"] as CertaintyLevel[]).map((level) => (
-          <div key={level} className="flex items-center gap-1.5">
-            <CertaintyBadge level={level} />
-          </div>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-4 px-2 pt-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide font-['Articulat_CF',sans-serif]">
+            Certainty of evidence:
+          </span>
+          {(["High", "Moderate", "Low", "Very Low"] as CertaintyLevel[]).map((level) => (
+            <div key={level} className="flex items-center gap-1.5">
+              <CertaintyBadge level={level} direction="benefit" />
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => setColorGuideOpen(true)}
+          className="flex items-center gap-1.5 text-[12px] font-medium text-[#2E75B5] hover:underline"
+        >
+          <Info size={13} />
+          Color guide
+        </button>
       </div>
+
+      <CertaintyColorGuide open={colorGuideOpen} onClose={() => setColorGuideOpen(false)} />
     </div>
   );
 }

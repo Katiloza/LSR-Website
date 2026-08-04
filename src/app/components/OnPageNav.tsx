@@ -19,12 +19,14 @@ export interface NavCategory {
   id: string;
   label: string;
   children?: NavItem[];
+  count?: number;
 }
 
 export interface NavItem {
   id: string;
   label: string;
   subItems?: NavItem[];
+  count?: number;
 }
 
 export function OnPageNav({ 
@@ -117,16 +119,25 @@ function NavGroup({
   const isActive = activeSectionId === category.id;
 
   if (isLeaf) {
+    const count = "count" in category ? category.count : undefined;
     return (
       <button
         onClick={() => onNavigate(category.id)}
         className={cn(
-          "text-left py-2 pr-2 rounded-lg text-[13px] transition-colors w-full font-['Articulat_CF',sans-serif]",
+          "flex items-center justify-between gap-2 text-left py-2 pr-2 rounded-lg text-[13px] transition-colors w-full font-['Articulat_CF',sans-serif]",
           isActive ? "text-[#2E75B5] font-semibold bg-blue-50/50" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
         )}
         style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}
       >
-        {category.label}
+        <span className="truncate">{category.label}</span>
+        {count !== undefined && (
+          <span className={cn(
+            "shrink-0 text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded-full",
+            isActive ? "bg-[#2E75B5]/10 text-[#2E75B5]" : "bg-gray-100 text-gray-400"
+          )}>
+            {count}
+          </span>
+        )}
       </button>
     );
   }

@@ -9,11 +9,13 @@ export interface PrismaStage {
   count: number;
   sublabel?: string;
   type: PrismaStageType;
-  studies?: Array<{ title: string; year: number; pmid?: string }>;
+  /** Trial names backing this stage — only "final" (Included) stages carry these. */
+  trialNames?: string[];
 }
 
 export interface PrismaFlowchartProps {
   stages: PrismaStage[];
+  /** Only called for "final" (Included) stages — the only cards that are clickable. */
   onNodeClick: (stage: PrismaStage) => void;
   activeNodeId?: string;
 }
@@ -56,47 +58,71 @@ const arrowRight: React.CSSProperties = {
 interface StageNodeProps {
   stage: PrismaStage;
   isActive: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }
 
+// Only "Included" (final) stages represent an actual clickable record set —
+// every other stage is a screening-process count with nothing behind it to
+// open, so it renders as an inert card (no button semantics, no hover/focus
+// affordance) rather than a dead click.
 function StageNode({ stage, isActive, onClick }: StageNodeProps) {
   const colors = STAGE_COLORS[stage.type];
+  const clickable = stage.type === "final" && !!onClick;
   const hasShadow = stage.type === "include" || stage.type === "total" || stage.type === "final";
+
+  const content = (
+    <div className="flex flex-col gap-1">
+      <span
+        className="text-[19px] font-bold leading-none tabular-nums font-['Articulat_CF',sans-serif]"
+        style={{ color: colors.countColor }}
+      >
+        {stage.count.toLocaleString()}
+      </span>
+      <p className="text-[12px] font-semibold leading-snug font-['Articulat_CF',sans-serif]" style={{ color: colors.text }}>
+        {stage.label}
+      </p>
+      {stage.sublabel && (
+        <p
+          className="text-[10px] leading-snug font-['Inter',sans-serif]"
+          style={{ color: stage.type === "final" ? "rgba(255,255,255,0.7)" : "#9ca3af" }}
+        >
+          {stage.sublabel}
+        </p>
+      )}
+    </div>
+  );
+
+  const sharedStyle: React.CSSProperties = {
+    backgroundColor: isActive ? "#E4F0FE" : colors.bg,
+    borderColor: isActive ? "#2E75B5" : colors.border,
+  };
+
+  if (!clickable) {
+    return (
+      <div
+        className={cn(
+          "w-full text-left rounded-xl border-2 px-4 py-3",
+          hasShadow && "shadow-sm"
+        )}
+        style={sharedStyle}
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
       aria-label={`${stage.label}: ${stage.count} references. Click to view studies.`}
       className={cn(
         "w-full text-left rounded-xl border-2 px-4 py-3 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40",
-        "hover:scale-[1.01]",
-        hasShadow ? "shadow-sm hover:shadow-md" : "hover:shadow-sm",
+        "hover:scale-[1.01] shadow-sm hover:shadow-md",
         isActive ? "ring-2 ring-[#2E75B5] shadow-md scale-[1.01]" : ""
       )}
-      style={{
-        backgroundColor: isActive ? "#E4F0FE" : colors.bg,
-        borderColor: isActive ? "#2E75B5" : colors.border,
-      }}
+      style={sharedStyle}
     >
-      {/* Stacked content: count on top, label beneath */}
-      <div className="flex flex-col gap-1">
-        <span
-          className="text-[19px] font-bold leading-none tabular-nums font-['Articulat_CF',sans-serif]"
-          style={{ color: colors.countColor }}
-        >
-          {stage.count.toLocaleString()}
-        </span>
-        <p className="text-[12px] font-semibold leading-snug font-['Articulat_CF',sans-serif]" style={{ color: colors.text }}>
-          {stage.label}
-        </p>
-        {stage.sublabel && (
-          <p
-            className="text-[10px] leading-snug font-['Inter',sans-serif]"
-            style={{ color: stage.type === "final" ? "rgba(255,255,255,0.7)" : "#9ca3af" }}
-          >
-            {stage.sublabel}
-          </p>
-        )}
-      </div>
+      {content}
     </button>
   );
 }

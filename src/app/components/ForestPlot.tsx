@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { Info } from "lucide-react";
 import { cn } from "../lib/utils";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
+import { useCitation } from "../lib/CitationContext";
 
 export interface StudyData {
   id: string;
@@ -63,7 +65,7 @@ function computeTakeaway(
 
 export function ForestPlot({ data, isActive }: ForestPlotProps) {
   const [hoveredStudyId, setHoveredStudyId] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const { openCitation } = useCitation();
 
   const outcomeLabel = data.outcome ?? data.title.split("|")[0].trim();
   const treatmentLabel = data.treatment ?? "treatment";
@@ -78,21 +80,10 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
     return ((logVal - logMin) / (logMax - logMin)) * 100;
   };
 
-  const handleMouseEnter = (e: React.MouseEvent, id: string) => {
-    setHoveredStudyId(id);
-    setTooltipPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setTooltipPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredStudyId(null);
-  };
+  const hoveredStudy = data.studies.find((s) => s.id === hoveredStudyId) ?? null;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -103,9 +94,19 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
         isActive ? "ring-2 ring-blue-100 scale-[1.002]" : ""
       )}
     >
-      <h3 className="font-medium mb-6 border-b border-gray-50 pb-4 font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
-        {data.title}
-      </h3>
+      <div className="mb-6 border-b border-gray-50 pb-4">
+        <h3 className="font-medium font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
+          {data.title}
+        </h3>
+        {/* Named comparison — was previously only surfaced inside the hover
+            tooltip; now always visible so a reader never sees a bare HR
+            without knowing what's being compared to what. */}
+        <p className="mt-1.5 text-[13px] text-gray-500 font-['Inter',sans-serif]">
+          <span className="font-semibold text-gray-700 capitalize">{treatmentLabel}</span>
+          {" "}vs.{" "}
+          <span className="font-semibold text-gray-700 capitalize">{controlLabel}</span>
+        </p>
+      </div>
 
       <div className="grid grid-cols-12 gap-8">
         {/* Table Side */}
@@ -122,17 +123,22 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
             </thead>
             <tbody className="text-[13px]">
               {data.studies.map((study) => (
-                <tr 
-                  key={study.id} 
+                <tr
+                  key={study.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View study record for ${study.trialName}`}
                   className={cn(
-                    "border-b border-[#EAEDF1] transition-colors h-[48px]",
+                    "border-b border-[#EAEDF1] transition-colors h-[48px] cursor-pointer focus:outline-none",
                     hoveredStudyId === study.id ? "bg-blue-50/50" : "hover:bg-gray-50/50"
                   )}
                   onMouseEnter={() => setHoveredStudyId(study.id)}
                   onMouseLeave={() => setHoveredStudyId(null)}
+                  onClick={() => openCitation(study.trialName)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCitation(study.trialName); } }}
                 >
-                  <td className="py-2 text-[#0663AD] hover:underline cursor-pointer">{study.name}</td>
-                  <td className="py-2 text-[#101318]">{study.trialName}</td>
+                  <td className="py-2 text-[#0663AD] hover:underline">{study.name}</td>
+                  <td className="py-2 text-[#101318] font-medium">{study.trialName}</td>
                   <td className="py-2 text-[#101318] text-center tabular-nums">{study.hr.toFixed(2)}</td>
                   <td className="py-2 text-[#101318] text-center tabular-nums">[{study.ci[0].toFixed(2)}; {study.ci[1].toFixed(2)}]</td>
                   <td className="py-2 text-[#101318] text-right tabular-nums">{study.weight.toFixed(1)}%</td>
@@ -176,18 +182,18 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
 
             {/* Vertical Reference Lines */}
             {/* Line of no effect (HR = 1) - Solid Black */}
-            <div 
+            <div
               className="absolute top-0 bottom-0 border-l border-[#101318] z-0 pointer-events-none"
               style={{ left: `${getPosition(1)}%` }}
             />
-            
+
             {/* Pooled Estimate Reference - Dashed Red */}
-            <div 
+            <div
               className="absolute top-0 bottom-0 border-l border-dashed border-[#D92D20] z-0 pointer-events-none opacity-50"
               style={{ left: `${getPosition(data.pooledHr)}%` }}
             />
 
-            <div 
+            <div
               className="absolute bottom-[-24px] -translate-x-1/2 text-[11px] font-bold text-gray-900"
               style={{ left: `${getPosition(1)}%` }}
             >
@@ -199,42 +205,44 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
               {data.studies.map((study) => {
                 const markerSize = Math.max(6, 4 + (study.weight * 0.8)); // Scaled box size
                 return (
-                  <div 
-                    key={study.id} 
+                  <div
+                    key={study.id}
                     className={cn(
                       "relative h-[48px] w-full transition-colors",
                       hoveredStudyId === study.id ? "bg-blue-50/20" : ""
                     )}
                   >
-                    {/* Invisible Hit Area (Full row height) */}
-                    <div 
-                      className="absolute inset-0 z-20 cursor-crosshair"
-                      onMouseEnter={(e) => handleMouseEnter(e, study.id)}
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
+                    {/* Hit Area (Full row height) — hover previews the takeaway
+                        panel below; click opens the study's citation popup. */}
+                    <button
+                      aria-label={`View study record for ${study.trialName}`}
+                      className="absolute inset-0 z-20 cursor-pointer"
+                      onMouseEnter={() => setHoveredStudyId(study.id)}
+                      onMouseLeave={() => setHoveredStudyId(null)}
+                      onClick={() => openCitation(study.trialName)}
                     />
 
                     {/* Whisker */}
-                    <div 
+                    <div
                       className="absolute h-[1.2px] bg-gray-900 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
-                      style={{ 
-                        left: `${getPosition(study.ci[0])}%`, 
-                        width: `${getPosition(study.ci[1]) - getPosition(study.ci[0])}%` 
+                      style={{
+                        left: `${getPosition(study.ci[0])}%`,
+                        width: `${getPosition(study.ci[1]) - getPosition(study.ci[0])}%`
                       }}
                     />
-                    
+
                     {/* Marker (Square Box) */}
-                    <motion.div 
+                    <motion.div
                       initial={{ scale: 0 }}
-                      animate={{ 
+                      animate={{
                         scale: 1,
                         backgroundColor: hoveredStudyId === study.id ? "#2E75B5" : "#000000"
                       }}
                       className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 pointer-events-none"
-                      style={{ 
-                        left: `${getPosition(study.hr)}%`, 
-                        width: `${markerSize}px`, 
-                        height: `${markerSize}px` 
+                      style={{
+                        left: `${getPosition(study.hr)}%`,
+                        width: `${markerSize}px`,
+                        height: `${markerSize}px`
                       }}
                     />
                   </div>
@@ -243,18 +251,18 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
 
               {/* Pooled Estimate (Diamond) */}
               <div className="relative h-[48px] w-full mt-auto">
-                <div 
+                <div
                   className="absolute top-1/2 -translate-y-1/2 z-10"
-                  style={{ 
-                    left: `${getPosition(data.pooledCi[0])}%`, 
+                  style={{
+                    left: `${getPosition(data.pooledCi[0])}%`,
                     width: `${getPosition(data.pooledCi[1]) - getPosition(data.pooledCi[0])}%`,
                     height: '14px'
                   }}
                 >
-                  <motion.svg 
+                  <motion.svg
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    viewBox="0 0 100 100" 
+                    viewBox="0 0 100 100"
                     preserveAspectRatio="none"
                     className="w-full h-full text-[#D92D20] fill-current overflow-visible"
                   >
@@ -267,40 +275,25 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
         </div>
       </div>
 
-      {/* Hover Tooltip */}
-      <AnimatePresence>
-        {hoveredStudyId && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            style={{ 
-              position: 'fixed',
-              left: tooltipPos.x + 20,
-              top: tooltipPos.y - 40,
-              zIndex: 1000,
-              pointerEvents: 'none'
-            }}
-            className="bg-[#101828] text-white px-3 py-2 rounded-lg text-[12px] min-w-[240px] max-w-[320px] border border-gray-700"
-          >
-            {(() => {
-              const study = data.studies.find(s => s.id === hoveredStudyId);
-              if (!study) return null;
-              const takeaway = computeTakeaway(study, outcomeLabel, treatmentLabel, controlLabel);
-              return (
-                <div className="flex flex-col gap-1">
-                  <div className="font-bold border-b border-gray-700 pb-1 mb-1">
-                    {study.name}
-                  </div>
-                  <div className="text-gray-300 leading-[1.5]">
-                    {takeaway}
-                  </div>
-                </div>
-              );
-            })()}
-          </motion.div>
+      {/* Takeaway panel — fixed location on the forest plot itself (was a
+          cursor-tracking fixed-position tooltip that could drift off-screen
+          or feel detached from the plot; now a stable panel that always
+          updates in place as the user hovers different studies). */}
+      <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 min-h-[64px] flex items-start gap-2.5">
+        <Info size={15} className="text-gray-400 shrink-0 mt-0.5" />
+        {hoveredStudy ? (
+          <div>
+            <p className="text-[12px] font-bold text-gray-900 mb-0.5">{hoveredStudy.name} · {hoveredStudy.trialName}</p>
+            <p className="text-[12px] text-gray-600 leading-[1.5] font-['Inter',sans-serif]">
+              {computeTakeaway(hoveredStudy, outcomeLabel, treatmentLabel, controlLabel)}
+            </p>
+          </div>
+        ) : (
+          <p className="text-[12px] text-gray-400 font-['Inter',sans-serif] self-center">
+            Hover a study to see a plain-language summary here. Click any study to view its citation.
+          </p>
         )}
-      </AnimatePresence>
+      </div>
     </motion.div>
   );
 }
