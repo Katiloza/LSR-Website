@@ -164,7 +164,7 @@ interface OutcomeDetailViewProps {
 export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
   const domains = row.domains;
   const [focusedDomain, setFocusedDomain] = useState<DomainKey>("riskOfBias");
-  const { openCitation } = useCitation();
+  const { openTrialList } = useCitation();
   const includedTrials = row.includedTrialNames ?? [];
 
   if (!domains) return null;
@@ -211,40 +211,31 @@ export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
               τ² = {row.heterogeneity?.tau2 ?? "—"} · p {row.heterogeneity?.p ?? "—"}
             </p>
           </div>
-          <div className="border border-gray-100 rounded-xl p-4 bg-white">
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Studies Included</p>
-            <p className="text-[20px] font-bold text-gray-900">{row.studyCount} studies</p>
-            <p className="text-[12px] text-gray-500">Random-effect model ready</p>
-          </div>
+          {/* Studies-included card — the list itself stays hidden; clicking
+              the card opens the reference-style popup of included studies,
+              each linking out to the published record. */}
+          {includedTrials.length > 0 ? (
+            <button
+              onClick={() => openTrialList(`${row.outcome} — included studies`, includedTrials)}
+              className="border border-gray-100 rounded-xl p-4 bg-white text-left transition-colors hover:border-[#2E75B5] hover:bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40 group"
+            >
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Studies Included</p>
+              <p className="text-[20px] font-bold text-gray-900 group-hover:text-[#2E75B5] transition-colors">
+                {row.studyCount} studies
+              </p>
+              <p className="text-[12px] text-[#2E75B5] flex items-center gap-1">
+                View study list <ChevronRight size={12} className="shrink-0" />
+              </p>
+            </button>
+          ) : (
+            <div className="border border-gray-100 rounded-xl p-4 bg-white">
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Studies Included</p>
+              <p className="text-[20px] font-bold text-gray-900">{row.studyCount} studies</p>
+              <p className="text-[12px] text-gray-500">Random-effect model ready</p>
+            </div>
+          )}
         </div>
       </section>
-
-      {/* Included Studies — each links to its citation (trial name, authors,
-          journal, outbound link) instead of dead-ending on a bare count. */}
-      {includedTrials.length > 0 && (
-        <section>
-          <h3 className="text-[20px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">
-            Included Studies
-          </h3>
-          {includedTrials.length < row.studyCount && (
-            <p className="text-[12px] text-gray-400 mb-3">
-              Showing {includedTrials.length} of {row.studyCount} contributing studies with a study record on file.
-            </p>
-          )}
-          <div className="grid grid-cols-3 gap-2">
-            {includedTrials.map((trialName) => (
-              <button
-                key={trialName}
-                onClick={() => openCitation(trialName)}
-                className="flex items-center justify-between gap-2 border border-gray-100 rounded-lg px-3 py-2.5 bg-white hover:border-[#2E75B5] hover:bg-blue-50/30 transition-colors text-left"
-              >
-                <span className="text-[12px] font-semibold text-gray-800">{trialName}</span>
-                <ChevronRight size={13} className="text-gray-300 shrink-0" />
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Domain Assessment */}
       <section>

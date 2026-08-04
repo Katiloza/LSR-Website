@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { ChevronRight } from "lucide-react";
 import { TopNav } from "../components/TopNav";
 import { SideIconRail } from "../components/SideIconRail";
 import { NavPanelShell } from "../components/NavPanelShell";
 import { PrismaFlowchart, PrismaStage } from "../components/PrismaFlowchart";
 import { PrismaLivingSearch } from "../components/PrismaLivingSearch";
+import { CitationList } from "../components/CitationList";
 import { useCitation } from "../lib/CitationContext";
-import { CANONICAL_TRIAL_NAMES, getCitation } from "../lib/citations";
+import { CANONICAL_TRIAL_NAMES } from "../lib/citations";
 import { cn } from "../lib/utils";
 
 type SidebarPanel = "flow" | "study-list";
@@ -96,32 +96,12 @@ const LIVING_SEARCH_DATA = [
 ];
 
 function StudyListView() {
-  const { openCitation } = useCitation();
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-1 max-w-3xl">
       <p className="text-[13px] text-gray-500 font-['Inter',sans-serif]">
-        The {INCLUDED_TRIALS.length} trials included in this living systematic review. Select a trial to view its citation.
+        The {INCLUDED_TRIALS.length} trials included in this living systematic review. Each entry links to the published study.
       </p>
-      <div className="grid grid-cols-2 gap-2">
-        {INCLUDED_TRIALS.map((trialName) => {
-          const citation = getCitation(trialName);
-          return (
-            <button
-              key={trialName}
-              onClick={() => openCitation(trialName)}
-              className="flex items-center justify-between gap-3 border border-gray-100 rounded-xl px-4 py-3 bg-white hover:border-[#2E75B5] hover:bg-blue-50/30 transition-colors text-left"
-            >
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-gray-900">{trialName}</p>
-                {citation && (
-                  <p className="text-[11px] text-gray-400 mt-0.5">{citation.journal} · {citation.year}</p>
-                )}
-              </div>
-              <ChevronRight size={15} className="text-gray-300 shrink-0" />
-            </button>
-          );
-        })}
-      </div>
+      <CitationList trialNames={INCLUDED_TRIALS} />
     </div>
   );
 }

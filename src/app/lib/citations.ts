@@ -10,10 +10,13 @@
 
 export interface Citation {
   trialName: string;
+  /** Publication title shown as the linked headline in reference-style lists. */
+  title?: string;
   authors: string;
   journal: string;
   year: number;
   pmid?: string;
+  nct?: string;
   condition?: string;
 }
 
@@ -28,18 +31,18 @@ export function citationUrl(c: Citation): string {
 // The 12 mCRPC trials backing the Summary Tables interactive table — the
 // canonical, fully-detailed dataset in this prototype.
 const MCRPC_CITATIONS: Citation[] = [
-  { trialName: "PROpel",     authors: "Saad F, et al.",       journal: "NEJM Evidence",           year: 2023, pmid: "35026162" },
-  { trialName: "TALAPRO-2",  authors: "Agarwal N, et al.",    journal: "The Lancet",               year: 2023, pmid: "37062857" },
-  { trialName: "MAGNITUDE",  authors: "Chi KN, et al.",       journal: "Journal of Clinical Oncology", year: 2023, pmid: "35147311" },
-  { trialName: "VISION",     authors: "Sartor O, et al.",     journal: "New England Journal of Medicine", year: 2021, pmid: "34161052" },
-  { trialName: "CARD",       authors: "de Wit R, et al.",     journal: "New England Journal of Medicine", year: 2019, pmid: "31665565" },
-  { trialName: "TRITON3",    authors: "Fizazi K, et al.",     journal: "New England Journal of Medicine", year: 2023, pmid: "36795891" },
-  { trialName: "PROfound",   authors: "Hussain M, et al.",    journal: "New England Journal of Medicine", year: 2020 },
-  { trialName: "COU-AA-302", authors: "Ryan CJ, et al.",      journal: "New England Journal of Medicine", year: 2013 },
-  { trialName: "PREVAIL",    authors: "Beer TM, et al.",      journal: "New England Journal of Medicine", year: 2014 },
-  { trialName: "AFFIRM",     authors: "Scher HI, et al.",     journal: "New England Journal of Medicine", year: 2012 },
-  { trialName: "COU-AA-301", authors: "de Bono JS, et al.",   journal: "New England Journal of Medicine", year: 2011 },
-  { trialName: "LATITUDE",   authors: "Fizazi K, et al.",     journal: "New England Journal of Medicine", year: 2017 },
+  { trialName: "PROpel",     title: "Abiraterone and olaparib for metastatic castration-resistant prostate cancer (PROpel).",                                      authors: "Saad F, Clarke NW, Oya M, et al.",       journal: "NEJM Evidence",                    year: 2023, pmid: "35026162", nct: "NCT03732820" },
+  { trialName: "TALAPRO-2",  title: "Talazoparib plus enzalutamide in men with first-line metastatic castration-resistant prostate cancer (TALAPRO-2).",           authors: "Agarwal N, Azad AA, Carles J, et al.",   journal: "The Lancet",                       year: 2023, pmid: "37062857", nct: "NCT03395197" },
+  { trialName: "MAGNITUDE",  title: "Niraparib and abiraterone acetate for metastatic castration-resistant prostate cancer (MAGNITUDE).",                          authors: "Chi KN, Rathkopf D, Smith MR, et al.",   journal: "Journal of Clinical Oncology",     year: 2023, pmid: "35147311", nct: "NCT03748641" },
+  { trialName: "VISION",     title: "Lutetium-177–PSMA-617 for metastatic castration-resistant prostate cancer (VISION).",                                          authors: "Sartor O, de Bono J, Chi KN, et al.",    journal: "New England Journal of Medicine",  year: 2021, pmid: "34161052", nct: "NCT03511664" },
+  { trialName: "CARD",       title: "Cabazitaxel versus abiraterone or enzalutamide in metastatic prostate cancer (CARD).",                                         authors: "de Wit R, de Bono J, Sternberg CN, et al.", journal: "New England Journal of Medicine", year: 2019, pmid: "31665565", nct: "NCT02485691" },
+  { trialName: "TRITON3",    title: "Rucaparib or physician's choice in metastatic prostate cancer with a BRCA1, BRCA2, or ATM alteration (TRITON3).",             authors: "Fizazi K, Piulats JM, Reaume MN, et al.", journal: "New England Journal of Medicine", year: 2023, pmid: "36795891", nct: "NCT02975934" },
+  { trialName: "PROfound",   title: "Olaparib for metastatic castration-resistant prostate cancer with homologous recombination repair alterations (PROfound).",   authors: "Hussain M, Mateo J, Fizazi K, et al.",   journal: "New England Journal of Medicine",  year: 2020, nct: "NCT02987543" },
+  { trialName: "COU-AA-302", title: "Abiraterone in metastatic prostate cancer without previous chemotherapy (COU-AA-302).",                                        authors: "Ryan CJ, Smith MR, de Bono JS, et al.",  journal: "New England Journal of Medicine",  year: 2013, nct: "NCT00887198" },
+  { trialName: "PREVAIL",    title: "Enzalutamide in metastatic prostate cancer before chemotherapy (PREVAIL).",                                                    authors: "Beer TM, Armstrong AJ, Rathkopf DE, et al.", journal: "New England Journal of Medicine", year: 2014, nct: "NCT01212991" },
+  { trialName: "AFFIRM",     title: "Increased survival with enzalutamide in prostate cancer after chemotherapy (AFFIRM).",                                         authors: "Scher HI, Fizazi K, Saad F, et al.",     journal: "New England Journal of Medicine",  year: 2012, nct: "NCT00974311" },
+  { trialName: "COU-AA-301", title: "Abiraterone and increased survival in metastatic prostate cancer (COU-AA-301).",                                               authors: "de Bono JS, Logothetis CJ, Molina A, et al.", journal: "New England Journal of Medicine", year: 2011, nct: "NCT00638690" },
+  { trialName: "LATITUDE",   title: "Abiraterone plus prednisone in metastatic, castration-sensitive prostate cancer (LATITUDE).",                                  authors: "Fizazi K, Tran N, Fein L, et al.",       journal: "New England Journal of Medicine",  year: 2017, nct: "NCT01715285" },
 ];
 
 // Additional trials referenced only in PRISMA's included-studies list.
