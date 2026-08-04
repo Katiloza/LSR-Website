@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { BarChart, Activity, ChevronDown, ChevronRight } from "lucide-react";
 import { GlobalSearch } from "../components/GlobalSearch";
@@ -228,6 +228,12 @@ export function SummaryOfFindingsPage() {
 
   const [checkedIds, setCheckedIds] = useState<string[]>(allLeafIds);
 
+  // Opening or closing an outcome's Overview jumps back to the top so the
+  // full-height detail view (and, on back, the table) starts in view.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [selectedRow]);
+
   const setAnalysis = (t: AnalysisType) => {
     const tree = t === "primary" ? PRIMARY_OUTCOME_TREE : SENSITIVITY_OUTCOME_TREE;
     setCheckedIds(collectLeafIds(tree));
@@ -313,29 +319,34 @@ export function SummaryOfFindingsPage() {
 
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
-            <div
-              className="rounded-t-[18px] p-8"
-              style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
-            >
-              <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
-                Systematic Review — mCRPC
-              </span>
-              <h1 className="text-[40px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-3">
-                Summary of Findings
-              </h1>
-              <p className="text-[15px] text-gray-600 font-['Inter',sans-serif] leading-relaxed max-w-2xl">
-                GRADE Summary of Findings table for{" "}
-                <span className="font-medium text-gray-800">
-                  {analysisType === "primary" ? "primary analysis" : "sensitivity analysis"}
+          <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2 min-h-[calc(100vh-88px)]">
+            {/* The page heading, search bar, and filters are hidden while an
+                outcome's Overview is open — the detail view takes the full
+                height so the focus stays on the outcome content. */}
+            {!selectedRow && (
+              <div
+                className="rounded-t-[18px] p-8"
+                style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
+              >
+                <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
+                  Systematic Review — mCRPC
                 </span>
-                . Certainty of evidence assessed using the GRADE approach. Use the sidebar to select which outcomes to display.
-              </p>
+                <h1 className="text-[40px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-3">
+                  Summary of Findings
+                </h1>
+                <p className="text-[15px] text-gray-600 font-['Inter',sans-serif] leading-relaxed max-w-2xl">
+                  GRADE Summary of Findings table for{" "}
+                  <span className="font-medium text-gray-800">
+                    {analysisType === "primary" ? "primary analysis" : "sensitivity analysis"}
+                  </span>
+                  . Certainty of evidence assessed using the GRADE approach. Use the sidebar to select which outcomes to display.
+                </p>
 
-              <GlobalSearch placeholder="Search outcomes, effects, certainty levels…" className="mt-8" />
+                <GlobalSearch placeholder="Search outcomes, effects, certainty levels…" className="mt-8" />
 
-              <FilterBar className="mt-4" />
-            </div>
+                <FilterBar className="mt-4" />
+              </div>
+            )}
 
             {selectedRow ? (
               <OutcomeDetailView
