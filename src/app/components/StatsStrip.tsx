@@ -8,7 +8,7 @@ interface Stat {
 }
 
 const stats: Stat[] = [
-  { icon: BookOpen, value: "47", label: "Studies included" },
+  { icon: BookOpen, value: "12", label: "Studies included" },
   { icon: FlaskConical, value: "12", label: "Interventions covered" },
   { icon: CalendarCheck, value: "June 2026", label: "Last updated" },
 ];
