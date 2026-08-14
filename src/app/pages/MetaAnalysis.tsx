@@ -1,105 +1,261 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { GlobalSearch } from "../components/GlobalSearch";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { TopNav } from "../components/TopNav";
 import { AppSidebar } from "../components/AppSidebar";
 import { ForestPlot } from "../components/ForestPlot";
-import { FilterBar } from "../components/FilterBar";
 import { MOCK_FOREST_DATA } from "../mockData";
+import { cn } from "../lib/utils";
 
 type AnalysisType = "Primary" | "Sensitivity";
 
+// ─── Outcome tree ─────────────────────────────────────────────────────────────
+// Figma node 1:7461 ("Type of Outcomes") — a page-local outcome picker that
+// sits beside the forest plot. Counts are the number of contributing studies
+// and match the Summary of Findings rows for the same outcome.
+
+interface OutcomeLeaf {
+  kind: "leaf";
+  id: string;
+  label: string;
+  count: number;
+  /** Card heading shown above the forest plot. */
+  title: string;
+  /** Which MOCK_FOREST_DATA series backs this outcome. */
+  dataId: string;
+}
+interface OutcomeGroup {
+  kind: "group";
+  label: string;
+  children: OutcomeNode[];
+}
+type OutcomeNode = OutcomeLeaf | OutcomeGroup;
+
+const PRIMARY_TREE: OutcomeNode[] = [
+  {
+    kind: "group",
+    label: "Survival",
+    children: [
+      { kind: "leaf", id: "os",  label: "Overall",             count: 12, title: "Overall Survival (overall population)",          dataId: "os"  },
+      { kind: "leaf", id: "pfs", label: "Progression-free",    count: 14, title: "Progression-free Survival (overall population)", dataId: "pfs" },
+      { kind: "leaf", id: "ttp", label: "Time to progression", count: 14, title: "Time to Progression (overall population)",       dataId: "pfs" },
+    ],
+  },
+  {
+    kind: "group",
+    label: "Response",
+    children: [
+      { kind: "leaf", id: "orr",   label: "Objective", count: 9, title: "Objective Response (overall population)", dataId: "os" },
+      { kind: "leaf", id: "crr",   label: "Complete",  count: 7, title: "Complete Response (overall population)",  dataId: "os" },
+      { kind: "leaf", id: "prr",   label: "Partial",   count: 7, title: "Partial Response (overall population)",   dataId: "os" },
+      { kind: "leaf", id: "psa50", label: "PSA50%",    count: 7, title: "PSA50% Response (overall population)",    dataId: "os" },
+    ],
+  },
+  {
+    kind: "group",
+    label: "Adverse events",
+    children: [
+      {
+        kind: "group",
+        label: "All-cause",
+        children: [
+          { kind: "leaf", id: "ae-any", label: "Any grade",         count: 13, title: "All-cause Adverse Events — any grade",        dataId: "os" },
+          { kind: "leaf", id: "ae-g3",  label: "Grade 3 or higher", count: 13, title: "All-cause Adverse Events — grade 3 or higher", dataId: "os" },
+          { kind: "leaf", id: "ae-g5",  label: "Grade 5",           count: 10, title: "All-cause Adverse Events — grade 5",           dataId: "os" },
+        ],
+      },
+      {
+        kind: "group",
+        label: "Treatment related",
+        children: [
+          { kind: "leaf", id: "trae-any", label: "Any grade",         count: 11, title: "Treatment-related Adverse Events — any grade",         dataId: "os" },
+          { kind: "leaf", id: "trae-g3",  label: "Grade 3 or higher", count: 11, title: "Treatment-related Adverse Events — grade 3 or higher", dataId: "os" },
+          { kind: "leaf", id: "trae-g5",  label: "Grade 5",           count: 9,  title: "Treatment-related Adverse Events — grade 5",           dataId: "os" },
+        ],
+      },
+    ],
+  },
+];
+
+const SENSITIVITY_TREE: OutcomeNode[] = [
+  {
+    kind: "group",
+    label: "Endpoint type",
+    children: [
+      { kind: "leaf", id: "brca-pos-c1",     label: "Overall survival",          count: 4, title: "Overall Survival (BRCA positive, cohort 1)",          dataId: "brca-pos-c1"     },
+      { kind: "leaf", id: "pfs-brca-pos-c1", label: "Progression-free survival", count: 4, title: "Progression-free Survival (BRCA positive, cohort 1)", dataId: "pfs-brca-pos-c1" },
+    ],
+  },
+];
+
+function flattenLeaves(nodes: OutcomeNode[]): OutcomeLeaf[] {
+  return nodes.flatMap((n) => (n.kind === "leaf" ? [n] : flattenLeaves(n.children)));
+}
+
+// ─── Tree rendering ───────────────────────────────────────────────────────────
+
+function OutcomeTreeNode({
+  node,
+  activeId,
+  onSelect,
+  depth,
+}: {
+  node: OutcomeNode;
+  activeId: string;
+  onSelect: (leaf: OutcomeLeaf) => void;
+  depth: number;
+}) {
+  const [open, setOpen] = useState(true);
+
+  if (node.kind === "leaf") {
+    const active = node.id === activeId;
+    return (
+      <button
+        onClick={() => onSelect(node)}
+        className={cn(
+          "flex items-center justify-between w-full pr-2 py-2 rounded-[10px] transition-colors",
+          active ? "bg-[#EFF6FF]/50" : "hover:bg-gray-50"
+        )}
+        style={{ paddingLeft: depth === 1 ? 32 : 48 }}
+      >
+        <span
+          className={cn(
+            "text-[13px] leading-[19.5px] font-['Articulat_CF',sans-serif] truncate text-left",
+            active ? "font-semibold text-[#2E75B5]" : "text-[#6a7282]"
+          )}
+        >
+          {node.label}
+        </span>
+        <span
+          className={cn(
+            "shrink-0 ml-2 px-1.5 py-0.5 rounded-full text-[11px] leading-[16.5px] font-medium font-['Articulat_CF',sans-serif]",
+            active ? "bg-[#2E75B5]/10 text-[#2E75B5]" : "bg-[#f3f4f6] text-[#99a1af]"
+          )}
+        >
+          {node.count}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col w-full">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 w-full pl-1 pr-2 py-2 rounded-[10px] hover:bg-gray-50 transition-colors"
+        style={{ paddingLeft: depth === 0 ? 4 : 20 }}
+      >
+        <span className="shrink-0 text-[#101828]">
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
+        <span
+          className={cn(
+            "flex-1 text-left font-semibold font-['Articulat_CF',sans-serif] text-[#101828] truncate",
+            depth === 0 ? "text-[15px] leading-[22.5px]" : "text-[13px] leading-[19.5px]"
+          )}
+        >
+          {node.label}
+        </span>
+      </button>
+      {open && (
+        <div className="flex flex-col w-full">
+          {node.children.map((child) => (
+            <OutcomeTreeNode
+              key={child.kind === "leaf" ? child.id : child.label}
+              node={child}
+              activeId={activeId}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export function MetaAnalysis() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Both driven by the global sidebar now (Meta-Analysis > Primary /
-  // Sensitivity > Overall survival, Progression-free survival), so they live
-  // in the URL rather than local-only state.
-  const analysisType: AnalysisType = searchParams.get("analysis") === "Sensitivity" ? "Sensitivity" : "Primary";
-  const sensitivityOutcome: "os" | "pfs" = searchParams.get("outcome") === "pfs" ? "pfs" : "os";
+  const analysisType: AnalysisType =
+    searchParams.get("analysis") === "Sensitivity" ? "Sensitivity" : "Primary";
 
-  const [activeSection, setActiveSection] = useState("");
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const tree = analysisType === "Sensitivity" ? SENSITIVITY_TREE : PRIMARY_TREE;
+  const leaves = flattenLeaves(tree);
+
+  const outcomeParam = searchParams.get("outcome");
+  const activeLeaf = leaves.find((l) => l.id === outcomeParam) ?? leaves[0];
+
+  const selectOutcome = (leaf: OutcomeLeaf) =>
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("analysis", analysisType);
+      next.set("outcome", leaf.id);
+      return next;
+    });
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    const firstId = analysisType === "Primary" ? "os" : sensitivityOutcome === "os" ? "brca-pos-c1" : "pfs-brca-pos-c1";
-    setActiveSection(firstId);
-  }, [analysisType, sensitivityOutcome]);
+  }, [analysisType, activeLeaf.id]);
 
-  const currentContent = analysisType === "Primary"
-    ? ["os"]
-    : sensitivityOutcome === "os" ? ["brca-pos-c1"] : ["pfs-brca-pos-c1"];
+  const data = MOCK_FOREST_DATA[activeLeaf.dataId] ?? MOCK_FOREST_DATA["os"];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
+    <div className="flex flex-col min-h-screen bg-white">
       <TopNav />
 
       <div className="flex flex-1 min-h-0">
         <AppSidebar />
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <main className="rounded-[20px] bg-[#ffffff] border-[2px] border-[#D1D5DC]/25 m-[8px] p-[0px]">
-            {/* Header / Intro Section */}
-            <div className="relative mb-12">
-              <div
-                className="absolute inset-0 z-0 pointer-events-none opacity-60 rounded-xl"
-                style={{ backgroundImage: "linear-gradient(180deg, rgba(133, 200, 250, 0.27) 0%, rgba(255, 255, 255, 0.27) 100%)" }}
-              />
+        {/* Main content — Figma node 1:7450 */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          {/* Page header — Figma node 1:7453 */}
+          <div
+            className="flex flex-col items-start p-8"
+            style={{
+              backgroundImage:
+                "linear-gradient(177.26deg, rgba(133,200,250,0.15) 8.4861%, rgba(133,200,250,0) 58.303%)",
+            }}
+          >
+            <h1 className="text-[48px] leading-[60px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] pt-2">
+              {analysisType} Meta-Analysis
+            </h1>
+            <p className="pt-4 text-[16px] leading-[26px] text-[#4a5565] font-['Inter',sans-serif] max-w-[1153px]">
+              Results are summarized as forest plots for primary analysis, sensitivity analysis, and
+              subgroup pairwise meta-analysis. Users can choose to view results for their outcome of
+              interest.
+            </p>
+          </div>
 
-              <div className="relative z-10 p-[32px] rounded-[20px] mx-[4px] my-[0px]">
-                <span className="text-[16px] text-gray-500 font-['Articulat_CF',sans-serif] mb-2 block">Systematic Review — mCRPC</span>
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                  <div className="w-full">
-                    <h1 className="text-[48px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-4">
-                      Pairwise Meta-Analysis
-                    </h1>
-                    <p className="text-[16px] text-gray-700 font-['Articulat_CF',sans-serif] leading-relaxed w-full">
-                      Results are summarized as forest plots for primary analysis, sensitivity analysis, and subgroup pairwise meta-analysis. Users can choose to view results for their outcome of interest.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex flex-col gap-4">
-                  <GlobalSearch placeholder="Search patient outcomes, treatment options, etc" />
-
-                  <FilterBar />
-                </div>
-              </div>
-            </div>
-
-            {/* Analysis Section (Now inside the white container) */}
-            <div className="w-full">
-              <div className="px-[32px]">
-                <h2 className="font-medium text-[#101828] mb-6 font-['Articulat_CF',sans-serif] text-[40px]">
-                  {analysisType} Analysis
-                </h2>
-              </div>
-
-              <div className="flex flex-col">
-                {currentContent.map((id) => (
-                  <div
-                    key={id}
-                    ref={el => sectionRefs.current[id] = el}
-                    className="scroll-mt-48 m-[0px] p-[0px]"
-                  >
-                    <div className="w-full px-[32px] overflow-hidden">
-                      <ForestPlot
-                        data={MOCK_FOREST_DATA[id]}
-                        isActive={activeSection === id}
-                      />
-                    </div>
-                  </div>
+          {/* Outcome picker + forest plot — Figma node 1:7460 */}
+          <div className="flex items-start gap-4 px-8 pb-12 pt-5">
+            {/* Type of Outcomes — Figma node 1:7461 */}
+            <aside className="w-[217px] shrink-0">
+              <p className="px-3 text-[11px] leading-[16.5px] font-bold uppercase tracking-[1.1645px] text-[#6a7282] font-['Inter',sans-serif]">
+                Type of Outcomes
+              </p>
+              <div className="mt-2 flex flex-col px-3">
+                {tree.map((node) => (
+                  <OutcomeTreeNode
+                    key={node.kind === "leaf" ? node.id : node.label}
+                    node={node}
+                    activeId={activeLeaf.id}
+                    onSelect={selectOutcome}
+                    depth={0}
+                  />
                 ))}
-
-                <div className="h-64 flex items-center justify-center italic border-t border-dashed border-gray-200 mt-20 font-['Articulat_CF',sans-serif] text-[#868688]">
-                  End of analysis results
-                </div>
               </div>
-            </div>
-        </main>
+            </aside>
+
+            {/* Forest plot card — Figma node 1:7574 */}
+            <section className="flex-1 min-w-0 rounded-[14px] border border-[#e5e7eb] bg-white p-6">
+              <ForestPlot data={{ ...data, title: activeLeaf.title }} isActive />
+            </section>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }

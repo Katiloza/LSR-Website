@@ -89,14 +89,29 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       id={data.id}
-      className={cn(
-        "bg-white rounded-xl transition-all border border-gray-100 mb-8 p-6 w-full overflow-hidden mx-auto",
-        isActive ? "ring-2 ring-blue-100 scale-[1.002]" : ""
-      )}
+      className={cn("bg-white w-full overflow-hidden", isActive ? "" : "")}
     >
-      <h3 className="font-medium mb-6 border-b border-gray-50 pb-4 font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
+      <h3 className="font-medium mb-4 border-b border-gray-100 pb-4 font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
         {data.title}
       </h3>
+
+      {/* Takeaway panel — sits directly under the heading (Figma node 1:7586),
+          updating in place as the user hovers different studies. */}
+      <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 min-h-[64px] flex items-start gap-2.5">
+        <Info size={15} className="text-gray-400 shrink-0 mt-0.5" />
+        {hoveredStudy ? (
+          <div>
+            <p className="text-[12px] font-bold text-gray-900 mb-0.5">{hoveredStudy.name} · {hoveredStudy.trialName}</p>
+            <p className="text-[12px] text-gray-600 leading-[1.5] font-['Inter',sans-serif]">
+              {computeTakeaway(hoveredStudy, outcomeLabel, treatmentLabel, controlLabel)}
+            </p>
+          </div>
+        ) : (
+          <p className="text-[12px] text-gray-400 font-['Inter',sans-serif] self-center">
+            Hover a study to see a plain-language summary here. Click any study to view its citation.
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-12 gap-8">
         {/* Table Side */}
@@ -272,25 +287,6 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
         </div>
       </div>
 
-      {/* Takeaway panel — fixed location on the forest plot itself (was a
-          cursor-tracking fixed-position tooltip that could drift off-screen
-          or feel detached from the plot; now a stable panel that always
-          updates in place as the user hovers different studies). */}
-      <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 min-h-[64px] flex items-start gap-2.5">
-        <Info size={15} className="text-gray-400 shrink-0 mt-0.5" />
-        {hoveredStudy ? (
-          <div>
-            <p className="text-[12px] font-bold text-gray-900 mb-0.5">{hoveredStudy.name} · {hoveredStudy.trialName}</p>
-            <p className="text-[12px] text-gray-600 leading-[1.5] font-['Inter',sans-serif]">
-              {computeTakeaway(hoveredStudy, outcomeLabel, treatmentLabel, controlLabel)}
-            </p>
-          </div>
-        ) : (
-          <p className="text-[12px] text-gray-400 font-['Inter',sans-serif] self-center">
-            Hover a study to see a plain-language summary here. Click any study to view its citation.
-          </p>
-        )}
-      </div>
     </motion.div>
   );
 }

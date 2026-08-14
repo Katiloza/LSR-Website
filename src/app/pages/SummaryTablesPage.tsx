@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
-import { Construction, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { GlobalSearch } from "../components/GlobalSearch";
+import { Construction, ChevronDown, ChevronRight } from "lucide-react";
 import { TopNav } from "../components/TopNav";
 import { AppSidebar } from "../components/AppSidebar";
-import { NavPanelShell } from "../components/NavPanelShell";
 import {
   SummaryTable,
   StudyRow,
@@ -13,7 +11,6 @@ import {
   LEVEL_COLORS,
 } from "../components/SummaryTable";
 import { COLUMN_SCHEMA, ColNode } from "../lib/summaryColumns";
-import { FilterBar } from "../components/FilterBar";
 import { useFilters } from "../lib/FilterContext";
 import { cn } from "../lib/utils";
 
@@ -120,11 +117,89 @@ function ColumnTreeNode({
   );
 }
 
+// ─── Column selector pill + dropdown ─────────────────────────────────────────
+// Figma node 1:671 — the three overarching categories render as inline
+// rounded-full "pills" above the table (replacing the old left-hand panel).
+// Each pill opens a popover containing that category's column tree.
+
+function ColumnSelectorPill({
+  node,
+  checkedLeafKeys,
+  expandedKeys,
+  onToggleCheck,
+  onToggleExpand,
+}: {
+  node: ColNode;
+  checkedLeafKeys: Set<string>;
+  expandedKeys: Set<string>;
+  onToggleCheck: (node: ColNode) => void;
+  onToggleExpand: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Click-away + Escape close the popover.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // Title-case the ALL-CAPS schema label for the pill face, matching Figma.
+  const label = node.label.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(
+          "flex items-center gap-2 px-4 py-2 rounded-full border border-[#2E75B5] transition-colors",
+          "text-[11px] font-medium text-[#000105] tracking-[0.0645px] font-['Inter',sans-serif] leading-[16.5px]",
+          open ? "bg-[#EFF6FF]" : "bg-white hover:bg-[#F8FBFF]"
+        )}
+      >
+        <span className="whitespace-nowrap">{label}</span>
+        <ChevronDown size={14} className={cn("shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {/* Children render at depth 1 — depth 0 is reserved for the ALL-CAPS
+          category label, which the tree title-cases (that would turn "NCT"
+          into "Nct" for these column names). */}
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+8px)] z-40 w-[320px] max-h-[420px] overflow-y-auto rounded-[14px] border border-gray-200 bg-white shadow-lg p-2">
+          {(node.children ?? []).map((child) => (
+            <ColumnTreeNode
+              key={child.key}
+              node={child}
+              depth={1}
+              checkedLeafKeys={checkedLeafKeys}
+              expandedKeys={expandedKeys}
+              onToggleCheck={onToggleCheck}
+              onToggleExpand={onToggleExpand}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Static data ──────────────────────────────────────────────────────────────
 
+// Labels mirror the global sidebar entries (Figma node 1:189) so the page
+// heading always matches the nav item the user clicked.
 const TABS: { id: TableTab; label: string }[] = [
   { id: "interactive-table", label: "Interactive Table" },
-  { id: "results-table",     label: "Results Table" },
+  { id: "results-table",     label: "Results Tables" },
   { id: "traffic-plot",      label: "Traffic Plot" },
 ];
 
@@ -158,10 +233,9 @@ function PlaceholderView({ title }: { title: string }) {
 // ─── Page component ───────────────────────────────────────────────────────────
 
 export function SummaryTablesPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const activeTab = (searchParams.get("tab") as TableTab) ?? "interactive-table";
   const highlightId = searchParams.get("hl") ?? undefined;
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
   const { activeFilters } = useFilters(); // global row filters, shared across pages
 
   // Single source of truth for column visibility: every leaf checked by default.
@@ -190,124 +264,88 @@ export function SummaryTablesPage() {
     });
   };
 
-  const allChecked = checkedLeafKeys.size === ALL_LEAF_KEYS.length;
   const setAll = (on: boolean) => setCheckedLeafKeys(on ? new Set(ALL_LEAF_KEYS) : new Set());
 
-  const setTab = (t: TableTab) => setSearchParams({ tab: t });
+  const activeTabLabel = TABS.find((t) => t.id === activeTab)?.label ?? "Interactive Table";
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
+    <div className="flex flex-col min-h-screen bg-white">
       <TopNav />
       <div className="flex flex-1 min-h-0">
         <AppSidebar />
 
-        {!isPanelOpen && (
-          <button
-            onClick={() => setIsPanelOpen(true)}
-            aria-label="Open column selector"
-            className="sticky top-[104px] mt-4 ml-3 h-9 w-9 shrink-0 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors z-30 self-start"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-        )}
-
-        {/* Secondary contextual panel — Column Selector (page-specific, not
-            part of the global nav) */}
-        <NavPanelShell isOpen={isPanelOpen}>
-          <div className="flex flex-col gap-5 px-6 py-6">
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] text-gray-400 font-['Inter',sans-serif]">Study characteristics & results</p>
-              <button
-                onClick={() => setIsPanelOpen(false)}
-                aria-label="Collapse column selector"
-                className="p-1 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-              >
-                <PanelLeftClose size={15} />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Column Selector</span>
-                <button
-                  onClick={() => setAll(!allChecked)}
-                  className="text-[11px] font-medium text-[#2E75B5] hover:underline"
-                >
-                  {allChecked ? "Clear all" : "Select all"}
-                </button>
-              </div>
-              <div className="flex flex-col">
-                {COLUMN_SCHEMA.map((node) => (
-                  <ColumnTreeNode
-                    key={node.key}
-                    node={node}
-                    depth={0}
-                    checkedLeafKeys={checkedLeafKeys}
-                    expandedKeys={expandedKeys}
-                    onToggleCheck={toggleCheck}
-                    onToggleExpand={toggleExpand}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </NavPanelShell>
-
-        {/* Main content */}
+        {/* Main content — Figma node 1:657 */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
-            <div
-              className="rounded-t-[18px] p-8"
-              style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
-            >
-              <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
-                Systematic Review — mCRPC
-              </span>
-              <h1 className="text-[40px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-3">
-                Summary Tables
-              </h1>
-              <p className="text-[15px] text-gray-600 font-['Inter',sans-serif] leading-relaxed max-w-2xl">
-                Study characteristics, population details, and results from all {MOCK_STUDIES.length} clinical trials
-                included in the living systematic review. Filter by study characteristics or toggle column visibility.
-              </p>
+          {/* Page header — Figma node 1:658 */}
+          <div
+            className="flex flex-col items-start p-8"
+            style={{
+              backgroundImage:
+                "linear-gradient(177.26deg, rgba(133,200,250,0.15) 8.4861%, rgba(133,200,250,0) 58.303%)",
+            }}
+          >
+            <h1 className="text-[40px] leading-[50px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] pt-1">
+              {activeTabLabel}
+            </h1>
+            <p className="pt-3 text-[15px] leading-[24.375px] text-[#4a5565] font-['Inter',sans-serif] w-[672px] max-w-full">
+              Study characteristics, population details, and results from all {MOCK_STUDIES.length} clinical
+              trials included in the living systematic review. Filter by study characteristics or toggle
+              column visibility.
+            </p>
+          </div>
 
-              <GlobalSearch placeholder="Search studies, treatments, trials…" className="mt-4" />
-
-              <FilterBar className="mt-4" />
-            </div>
-
-            <div className="p-8">
-              {/* Tab bar */}
-              <div className="flex gap-1 mb-6 border-b border-gray-100 pb-0">
-                {TABS.map((tab) => (
+          {activeTab === "interactive-table" && (
+            <>
+              {/* Column selector — Figma node 1:664 */}
+              <div className="flex flex-col gap-2 px-8 pt-4">
+                <div className="flex items-center justify-between w-[489px] max-w-full">
+                  <span className="text-[11px] leading-[16.5px] font-bold text-black uppercase tracking-[1.1645px] font-['Inter',sans-serif]">
+                    Column Selector
+                  </span>
                   <button
-                    key={tab.id}
-                    onClick={() => setTab(tab.id)}
-                    className={cn(
-                      "px-4 py-2.5 text-[13px] font-medium transition-all border-b-2 -mb-px",
-                      activeTab === tab.id
-                        ? "border-[#2E75B5] text-[#2E75B5]"
-                        : "border-transparent text-gray-500 hover:text-gray-700",
-                      tab.id !== "interactive-table" && "opacity-40"
-                    )}
+                    onClick={() => setAll(true)}
+                    className="text-[12px] leading-[18px] font-medium text-black font-['Inter',sans-serif] hover:underline"
                   >
-                    {tab.label}
+                    Reset all
                   </button>
-                ))}
+                </div>
+
+                <div className="flex gap-2 items-start flex-wrap">
+                  {COLUMN_SCHEMA.map((node) => (
+                    <ColumnSelectorPill
+                      key={node.key}
+                      node={node}
+                      checkedLeafKeys={checkedLeafKeys}
+                      expandedKeys={expandedKeys}
+                      onToggleCheck={toggleCheck}
+                      onToggleExpand={toggleExpand}
+                    />
+                  ))}
+                </div>
               </div>
 
-              {activeTab === "interactive-table" && (
+              {/* Table — Figma node 1:687 */}
+              <div className="px-8 pt-6 pb-8">
                 <SummaryTable
                   rows={MOCK_STUDIES}
                   activeFilters={activeFilters}
                   highlightId={highlightId}
                   checkedLeafKeys={checkedLeafKeys}
                 />
-              )}
-              {activeTab === "results-table" && <PlaceholderView title="Results Table" />}
-              {activeTab === "traffic-plot" && <PlaceholderView title="Traffic Plot" />}
+              </div>
+            </>
+          )}
+
+          {activeTab === "results-table" && (
+            <div className="px-8 pb-8">
+              <PlaceholderView title="Results Tables" />
             </div>
-          </main>
+          )}
+          {activeTab === "traffic-plot" && (
+            <div className="px-8 pb-8">
+              <PlaceholderView title="Traffic Plot" />
+            </div>
+          )}
         </div>
       </div>
     </div>

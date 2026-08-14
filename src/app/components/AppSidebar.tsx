@@ -80,8 +80,8 @@ const SECTIONS: NavSection[] = [
         label: "Sensitivity",
         isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity",
         children: [
-          { label: "Overall survival",          to: "/meta-analysis?analysis=Sensitivity&outcome=os",  isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" && (sp.get("outcome") ?? "os") === "os" },
-          { label: "Progression-free survival", to: "/meta-analysis?analysis=Sensitivity&outcome=pfs", isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" && sp.get("outcome") === "pfs" },
+          { label: "Overall survival",          to: "/meta-analysis?analysis=Sensitivity&outcome=brca-pos-c1",     isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" && (sp.get("outcome") ?? "brca-pos-c1") === "brca-pos-c1" },
+          { label: "Progression-free survival", to: "/meta-analysis?analysis=Sensitivity&outcome=pfs-brca-pos-c1", isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" && sp.get("outcome") === "pfs-brca-pos-c1" },
         ],
       },
     ],

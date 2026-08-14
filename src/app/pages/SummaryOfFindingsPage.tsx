@@ -1,92 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { GlobalSearch } from "../components/GlobalSearch";
+import { ArrowUpRight } from "lucide-react";
 import { TopNav } from "../components/TopNav";
 import { AppSidebar } from "../components/AppSidebar";
-import { NavPanelShell } from "../components/NavPanelShell";
-import { GradeTable, SoFRow } from "../components/GradeTable";
+import { SoFRow } from "../components/GradeTable";
+import { CertaintyLevel } from "../components/CertaintyBadge";
 import { OutcomeDetailView } from "../components/OutcomeDetailView";
-import { FilterBar } from "../components/FilterBar";
 import { CANONICAL_TRIAL_NAMES } from "../lib/citations";
-import { cn } from "../lib/utils";
 
 type AnalysisType = "primary" | "sensitivity";
-
-interface OutcomeLeaf {
-  kind: "leaf";
-  id: string;
-  label: string;
-}
-interface OutcomeGroup {
-  kind: "group";
-  label: string;
-  children: (OutcomeLeaf | OutcomeGroup)[];
-}
-type OutcomeNode = OutcomeLeaf | OutcomeGroup;
-
-function collectLeafIds(nodes: OutcomeNode[]): string[] {
-  return nodes.flatMap((n) =>
-    n.kind === "leaf" ? [n.id] : collectLeafIds(n.children)
-  );
-}
-
-const PRIMARY_OUTCOME_TREE: OutcomeNode[] = [
-  {
-    kind: "group",
-    label: "Survival / Time-to-event",
-    children: [
-      { kind: "leaf", id: "os", label: "Overall survival" },
-      { kind: "leaf", id: "pfs", label: "Progression-free survival" },
-    ],
-  },
-  {
-    kind: "group",
-    label: "Response",
-    children: [
-      { kind: "leaf", id: "orr", label: "Objective" },
-      { kind: "leaf", id: "crr", label: "Complete" },
-      { kind: "leaf", id: "prr", label: "Partial" },
-    ],
-  },
-  {
-    kind: "group",
-    label: "Adverse events",
-    children: [
-      {
-        kind: "group",
-        label: "All-cause",
-        children: [
-          { kind: "leaf", id: "ae-any", label: "Any grade" },
-          { kind: "leaf", id: "ae-g3", label: "Grade 3 or higher" },
-          { kind: "leaf", id: "ae-g5", label: "Grade 5" },
-        ],
-      },
-      {
-        kind: "group",
-        label: "Treatment related",
-        children: [
-          { kind: "leaf", id: "trae-any", label: "Any grade" },
-          { kind: "leaf", id: "trae-g3", label: "Grade 3 or higher" },
-          { kind: "leaf", id: "trae-g5", label: "Grade 5" },
-        ],
-      },
-    ],
-  },
-];
-
-const SENSITIVITY_OUTCOME_TREE: OutcomeNode[] = [
-  {
-    kind: "group",
-    label: "Endpoint type",
-    children: [
-      { kind: "leaf", id: "pfs-composite", label: "Composite PFS (overall population)" },
-      { kind: "leaf", id: "pfs-radio-overall", label: "Radiographic PFS (overall population)" },
-      { kind: "leaf", id: "pfs-radio-bicr", label: "Radiographic PFS (BICR)" },
-      { kind: "leaf", id: "pfs-radio-inv", label: "Radiographic PFS (INV)" },
-    ],
-  },
-];
 
 // The 12 named trials backing Summary Tables / citations — reused here so
 // "Included Studies" links on the Overview page resolve to real records
@@ -94,6 +16,7 @@ const SENSITIVITY_OUTCOME_TREE: OutcomeNode[] = [
 const T = CANONICAL_TRIAL_NAMES;
 
 const PRIMARY_SOF_ROWS: SoFRow[] = [
+] = [
   {
     id: "os", outcome: "Overall survival", studyCount: 12, participantCount: 14832,
     relativeEffect: "HR 0.79", relativeEffectCI: "(0.71–0.88)",
@@ -108,6 +31,7 @@ const PRIMARY_SOF_ROWS: SoFRow[] = [
       publicationBias:{ rating: "Not applicable", details: { algorithmDecision: "Not applicable", algorithmNote: "Sufficient studies for funnel plot", humanDecision: "Not applicable", humanNote: "No asymmetry detected" } },
     },
   },
+
   {
     id: "pfs", outcome: "Progression-free survival", studyCount: 14, participantCount: 16201,
     relativeEffect: "HR 0.61", relativeEffectCI: "(0.54–0.70)",
@@ -122,15 +46,20 @@ const PRIMARY_SOF_ROWS: SoFRow[] = [
       publicationBias:{ rating: "Not applicable" },
     },
   },
+
   { id: "orr",      outcome: "Objective response",                studyCount: 9,  participantCount: 7634,  relativeEffect: "RR 1.48", relativeEffectCI: "(1.28–1.71)", absoluteIntervention: "415 per 1,000", absoluteControl: "280 per 1,000", riskDifference: "+135 per 1,000", certainty: "High",     direction: "benefit", includedTrialNames: T.slice(0, 9),  heterogeneity: { i2: "14.1", tau2: "0.0021", p: "0.3412" }, domains: { riskOfBias: { rating: "Not serious", details: { allEvaluated: "Yes", allLowRisk: "True", highRiskSomeConcerns: "False", subgroupPValue: "NA", percentHighRisk: "0%", algorithmDecision: "Not serious", algorithmNote: "All studies low risk", humanDecision: "Not serious", humanNote: "Agreed" } }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Not serious" }, publicationBias: { rating: "Not applicable" } } },
-  { id: "crr",      outcome: "Complete response",                 studyCount: 7,  participantCount: 6102,  relativeEffect: "RR 1.61", relativeEffectCI: "(1.30–1.99)", absoluteIntervention: "193 per 1,000", absoluteControl: "120 per 1,000", riskDifference: "+73 per 1,000",  certainty: "Moderate",  direction: "benefit", includedTrialNames: T.slice(0, 7),  heterogeneity: { i2: "29.3", tau2: "0.0078", p: "0.1654" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "Wide CI; fewer studies", humanDecision: "Serious", humanNote: "Small event count in some arms" } }, publicationBias: { rating: "Not applicable" } } },
-  { id: "prr",      outcome: "Partial response",                  studyCount: 7,  participantCount: 6102,  relativeEffect: "RR 1.41", relativeEffectCI: "(1.18–1.68)", absoluteIntervention: "282 per 1,000", absoluteControl: "200 per 1,000", riskDifference: "+82 per 1,000",  certainty: "Moderate",  direction: "benefit", includedTrialNames: T.slice(5, 12), heterogeneity: { i2: "22.7", tau2: "0.0055", p: "0.2210" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "CI includes small benefit", humanDecision: "Serious", humanNote: "Threshold sensitivity" } }, publicationBias: { rating: "Not applicable" } } },
+
   { id: "ae-any",   outcome: "All-cause AEs — any grade",         studyCount: 13, participantCount: 15640, relativeEffect: "RR 1.06", relativeEffectCI: "(1.02–1.10)", absoluteIntervention: "848 per 1,000", absoluteControl: "800 per 1,000", riskDifference: "+48 per 1,000",  certainty: "Moderate",  direction: "harm",    includedTrialNames: T.slice(0, 12), heterogeneity: { i2: "41.2", tau2: "0.0098", p: "0.0612" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "I² = 41.2%, moderate heterogeneity", humanDecision: "Serious", humanNote: "Variability in reporting AE definitions" } }, imprecision: { rating: "Not serious" }, publicationBias: { rating: "Not applicable" } } },
-  { id: "ae-g3",    outcome: "All-cause AEs — grade ≥3",          studyCount: 13, participantCount: 15640, relativeEffect: "RR 1.19", relativeEffectCI: "(1.11–1.28)", absoluteIntervention: "583 per 1,000", absoluteControl: "490 per 1,000", riskDifference: "+93 per 1,000",  certainty: "Moderate",  direction: "harm",    includedTrialNames: T.slice(0, 12), heterogeneity: { i2: "18.9", tau2: "0.0044", p: "0.2801" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Not serious" }, publicationBias: { rating: "Not applicable" } } },
+
   { id: "ae-g5",    outcome: "All-cause AEs — grade 5",           studyCount: 10, participantCount: 11820, relativeEffect: "RR 1.04", relativeEffectCI: "(0.76–1.42)", absoluteIntervention: "21 per 1,000",  absoluteControl: "20 per 1,000",  riskDifference: "+1 per 1,000",   certainty: "Low",       direction: "neither", includedTrialNames: T.slice(0, 10), heterogeneity: { i2: "52.1", tau2: "0.0201", p: "0.0241" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Serious",   details: { algorithmDecision: "Serious", algorithmNote: "I² = 52.1%, substantial heterogeneity", humanDecision: "Serious", humanNote: "Rare event; variable definitions" } }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "CI crosses null; rare events", humanDecision: "Serious", humanNote: "Agreed" } }, publicationBias: { rating: "Not applicable" } } },
-  { id: "trae-any", outcome: "Treatment-related AEs — any grade", studyCount: 11, participantCount: 13201, relativeEffect: "RR 1.12", relativeEffectCI: "(1.06–1.18)", absoluteIntervention: "672 per 1,000", absoluteControl: "600 per 1,000", riskDifference: "+72 per 1,000",  certainty: "Moderate",  direction: "harm",    includedTrialNames: T.slice(0, 11), heterogeneity: { i2: "31.4", tau2: "0.0081", p: "0.1402" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Not serious" }, publicationBias: { rating: "Not applicable" } } },
-  { id: "trae-g3",  outcome: "Treatment-related AEs — grade ≥3",  studyCount: 11, participantCount: 13201, relativeEffect: "RR 1.24", relativeEffectCI: "(1.14–1.35)", absoluteIntervention: "372 per 1,000", absoluteControl: "300 per 1,000", riskDifference: "+72 per 1,000",  certainty: "Moderate",  direction: "harm",    includedTrialNames: T.slice(0, 11), heterogeneity: { i2: "24.8", tau2: "0.0063", p: "0.2014" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Not serious" }, publicationBias: { rating: "Not applicable" } } },
-  { id: "trae-g5",  outcome: "Treatment-related AEs — grade 5",   studyCount: 9,  participantCount: 10540, relativeEffect: "RR 1.02", relativeEffectCI: "(0.68–1.52)", absoluteIntervention: "10 per 1,000",  absoluteControl: "10 per 1,000",  riskDifference: "0 per 1,000",    certainty: "Low",       direction: "neither", includedTrialNames: T.slice(3, 12), heterogeneity: { i2: "48.3", tau2: "0.0178", p: "0.0391" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "Substantial heterogeneity I² = 48.3%", humanDecision: "Serious", humanNote: "Small event count drives variance" } }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "CI spans null; rare fatal AE", humanDecision: "Serious", humanNote: "Agreed" } }, publicationBias: { rating: "Not applicable" } } },
+
+  { id: "hrqol",    outcome: "Health-related quality of life",    studyCount: 6,  participantCount: 4120,  relativeEffect: "MD 3.2 pts", relativeEffectCI: "(−1.1 to 7.5)", absoluteIntervention: "—", absoluteControl: "—", riskDifference: "—", certainty: "Very Low", direction: "neither", includedTrialNames: T.slice(0, 6), heterogeneity: { i2: "68.4", tau2: "0.0312", p: "0.0074" }, domains: { riskOfBias: { rating: "Serious", details: { allEvaluated: "No", allLowRisk: "False", highRiskSomeConcerns: "True", subgroupPValue: "NA", percentHighRisk: "33%", algorithmDecision: "Serious", algorithmNote: "Open-label designs with self-reported outcome", humanDecision: "Serious", humanNote: "Unblinded QoL reporting" } }, indirectness: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "Instruments differ across trials", humanDecision: "Serious", humanNote: "Mixed QoL scales limit comparability" } }, inconsistency: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "I² = 68.4%, substantial heterogeneity", humanDecision: "Serious", humanNote: "Direction of effect varies" } }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "CI crosses no-difference threshold", humanDecision: "Serious", humanNote: "Optimal information size not met" } }, publicationBias: { rating: "Not applicable" } } },
+
+  { id: "crr",      outcome: "Complete response",                 studyCount: 7,  participantCount: 6102,  relativeEffect: "RR 1.61", relativeEffectCI: "(1.30–1.99)", absoluteIntervention: "193 per 1,000", absoluteControl: "120 per 1,000", riskDifference: "+73 per 1,000",  certainty: "Moderate",  direction: "benefit", includedTrialNames: T.slice(0, 7),  heterogeneity: { i2: "29.3", tau2: "0.0078", p: "0.1654" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "Wide CI; fewer studies", humanDecision: "Serious", humanNote: "Small event count in some arms" } }, publicationBias: { rating: "Not applicable" } } },
+
+  { id: "prr",      outcome: "Partial response",                  studyCount: 7,  participantCount: 6102,  relativeEffect: "RR 1.41", relativeEffectCI: "(1.18–1.68)", absoluteIntervention: "282 per 1,000", absoluteControl: "200 per 1,000", riskDifference: "+82 per 1,000",  certainty: "Moderate",  direction: "benefit", includedTrialNames: T.slice(5, 12), heterogeneity: { i2: "22.7", tau2: "0.0055", p: "0.2210" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Serious", details: { algorithmDecision: "Serious", algorithmNote: "CI includes small benefit", humanDecision: "Serious", humanNote: "Threshold sensitivity" } }, publicationBias: { rating: "Not applicable" } } },
+
+  { id: "ae-g3",    outcome: "All-cause AEs — grade ≥3",          studyCount: 13, participantCount: 15640, relativeEffect: "RR 1.19", relativeEffectCI: "(1.11–1.28)", absoluteIntervention: "583 per 1,000", absoluteControl: "490 per 1,000", riskDifference: "+93 per 1,000",  certainty: "Moderate",  direction: "harm",    includedTrialNames: T.slice(0, 12), heterogeneity: { i2: "18.9", tau2: "0.0044", p: "0.2801" }, domains: { riskOfBias: { rating: "Not serious" }, indirectness: { rating: "Not serious" }, inconsistency: { rating: "Not serious" }, imprecision: { rating: "Not serious" }, publicationBias: { rating: "Not applicable" } } },
 ];
 
 const SENSITIVITY_SOF_ROWS: SoFRow[] = [
@@ -140,76 +69,113 @@ const SENSITIVITY_SOF_ROWS: SoFRow[] = [
   { id: "pfs-radio-inv",    outcome: "Radiographic PFS (INV)",                 studyCount: 7, participantCount: 8401,  relativeEffect: "HR 0.55", relativeEffectCI: "(0.47–0.64)", absoluteIntervention: "189 per 1,000", absoluteControl: "344 per 1,000", riskDifference: "−155 per 1,000", certainty: "Moderate", direction: "benefit", includedTrialNames: T.slice(5, 12) },
 ];
 
-function OutcomeTreeNode({
-  node,
-  checkedIds,
-  onToggle,
-  depth = 0,
-}: {
-  node: OutcomeNode;
-  checkedIds: string[];
-  onToggle: (id: string) => void;
-  depth?: number;
-}) {
-  const [open, setOpen] = useState(true);
+// ─── Certainty theming ───────────────────────────────────────────────────────
+// Figma nodes 1:7705 / 1:7729 / 1:7778 — each card is tinted by its GRADE
+// certainty level. Legend swatch hues come from node 1:7688.
 
-  if (node.kind === "leaf") {
-    const isChecked = checkedIds.includes(node.id);
-    return (
-      <button
-        onClick={() => onToggle(node.id)}
-        className={cn(
-          "flex items-center gap-2.5 text-left py-2 pr-2 rounded-lg text-[13px] transition-colors w-full font-['Articulat_CF',sans-serif] hover:bg-gray-50",
-          isChecked ? "text-[#2E75B5] font-semibold" : "text-gray-900"
-        )}
-        style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}
-      >
-        {/* Checkbox */}
-        <span className={cn(
-          "shrink-0 flex items-center justify-center w-[14px] h-[14px] rounded-[3px] border transition-colors",
-          isChecked ? "bg-[#2E75B5] border-[#2E75B5]" : "border-gray-300 bg-white"
-        )}>
-          {isChecked && (
-            <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-              <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </span>
-        {node.label}
-      </button>
-    );
-  }
+const CERTAINTY_THEME: Record<
+  CertaintyLevel,
+  { bg: string; border: string; ink: string; dot: string }
+> = {
+  High:       { bg: "#ecfdf5", border: "#a7f3d0", ink: "#065f46", dot: "#10b981" },
+  Moderate:   { bg: "#fffbeb", border: "#fde68a", ink: "#92400e", dot: "#f59e0b" },
+  Low:        { bg: "#fff7ed", border: "#fed7aa", ink: "#9a3412", dot: "#f97316" },
+  "Very Low": { bg: "#fef2f2", border: "#fecaca", ink: "#991b1b", dot: "#ef4444" },
+};
+
+const LEGEND_LEVELS: CertaintyLevel[] = ["High", "Moderate", "Low", "Very Low"];
+
+/** Card face copy — the design splits some outcome names into a title plus a
+ *  smaller grade qualifier (e.g. "All-cause adverse events" / "grade 5"). */
+const CARD_COPY: Record<string, { title: string; qualifier?: string }> = {
+  os:        { title: "Overall survival" },
+  pfs:       { title: "Progression-free survival" },
+  orr:       { title: "Objective response" },
+  crr:       { title: "Complete response" },
+  prr:       { title: "Partial response" },
+  "ae-any":  { title: "All-cause adverse events", qualifier: "any grade" },
+  "ae-g3":   { title: "All-cause adverse events", qualifier: "grade 3 or higher" },
+  "ae-g5":   { title: "All-cause adverse events", qualifier: "grade 5" },
+  "trae-any":{ title: "Treatment-related adverse events", qualifier: "any grade" },
+  "trae-g3": { title: "Treatment-related adverse events", qualifier: "grade 3 or higher" },
+  "trae-g5": { title: "Treatment-related adverse events", qualifier: "grade 5" },
+  hrqol:     { title: "Health-related quality of life" },
+};
+
+const COMPARISON_LABEL = "Combination therapy vs standard of care";
+
+function OutcomeCard({ row, onOpen }: { row: SoFRow; onOpen: () => void }) {
+  const theme = CERTAINTY_THEME[row.certainty];
+  const copy = CARD_COPY[row.id] ?? { title: row.outcome };
+
+  // "(1.28–1.71)" → "1.28–1.71" so the card reads "95% CI 1.28–1.71".
+  const ci = row.relativeEffectCI.replace(/^\(|\)$/g, "");
 
   return (
-    <div className="flex flex-col">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          "flex items-center gap-2 py-2 pr-2 text-left rounded-lg transition-colors w-full group",
-          depth === 0
-            ? "text-[15px] font-medium text-gray-900 font-['Articulat_CF',sans-serif]"
-            : "text-[13px] text-gray-600 font-['Articulat_CF',sans-serif]"
-        )}
-        style={{ paddingLeft: `${depth * 12 + 4}px` }}
-      >
-        <span className="text-gray-400 group-hover:text-[#2E75B5] shrink-0 transition-colors">
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </span>
-        <span className="flex-1 truncate">{node.label}</span>
-      </button>
-      {open && (
-        <div className="flex flex-col">
-          {node.children.map((child) => (
-            <OutcomeTreeNode
-              key={child.kind === "leaf" ? child.id : child.label}
-              node={child}
-              checkedIds={checkedIds}
-              onToggle={onToggle}
-              depth={depth + 1}
+    <div
+      className="flex flex-col justify-between rounded-[20px] border-[1.5px] p-7 min-h-[379px] font-['Inter',sans-serif]"
+      style={{
+        backgroundColor: theme.bg,
+        borderColor: theme.border,
+        filter: "drop-shadow(0px 1px 1px rgba(0,0,0,0.05))",
+      }}
+    >
+      <div className="flex flex-col w-full">
+        {/* Certainty pill + study counts */}
+        <div className="flex items-start justify-between gap-3 w-full">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-2.5 py-1 shrink-0"
+            style={{ borderColor: theme.border }}
+          >
+            <span
+              className="size-1.5 rounded-[3px] shrink-0"
+              style={{ backgroundColor: theme.ink }}
             />
-          ))}
+            <span
+              className="text-[11px] font-semibold whitespace-nowrap"
+              style={{ color: theme.ink }}
+            >
+              {row.certainty} certainty
+            </span>
+          </span>
+          <span className="text-[10px] leading-[13px] text-[#374151] text-right shrink-0">
+            n={row.studyCount} studies
+            <br />
+            {row.participantCount.toLocaleString()} participants
+          </span>
         </div>
-      )}
+
+        {/* Outcome name */}
+        <div className="flex flex-col gap-2 mt-2">
+          <h3 className="font-bold text-[#101828] text-[32px] leading-[32px]">
+            {copy.title}
+            {copy.qualifier && (
+              <span className="block text-[16px] leading-[26px] mt-1">{copy.qualifier}</span>
+            )}
+          </h3>
+          <p className="text-[12px] text-[#4b5563]">{COMPARISON_LABEL}</p>
+        </div>
+      </div>
+
+      {/* Effect estimate */}
+      <div className="flex flex-col w-full mt-6">
+        <p
+          className="font-bold text-[36px] leading-[36px] tracking-[-0.36px]"
+          style={{ color: theme.ink }}
+        >
+          {row.relativeEffect}
+        </p>
+        <p className="pt-1 text-[12px] text-[#6b7280]">95% CI {ci}</p>
+      </div>
+
+      <button
+        onClick={onOpen}
+        disabled={!row.domains}
+        className="mt-6 inline-flex items-center gap-2 text-[16px] text-black underline disabled:opacity-40 disabled:no-underline"
+      >
+        How is this summarized?
+        <ArrowUpRight size={14} className="shrink-0" />
+      </button>
     </div>
   );
 }
@@ -217,144 +183,107 @@ function OutcomeTreeNode({
 export function SummaryOfFindingsPage() {
   const [searchParams] = useSearchParams();
   const analysisType = (searchParams.get("analysis") as AnalysisType) ?? "primary";
-  const highlightId = searchParams.get("hl") ?? undefined;
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedRow, setSelectedRow] = useState<SoFRow | null>(null);
 
-  const outcomeTree = analysisType === "primary" ? PRIMARY_OUTCOME_TREE : SENSITIVITY_OUTCOME_TREE;
   const sofRows = analysisType === "primary" ? PRIMARY_SOF_ROWS : SENSITIVITY_SOF_ROWS;
-  const allLeafIds = collectLeafIds(outcomeTree);
-
-  const [checkedIds, setCheckedIds] = useState<string[]>(allLeafIds);
 
   // Opening or closing an outcome's Overview jumps back to the top so the
-  // full-height detail view (and, on back, the table) starts in view.
+  // full-height detail view (and, on back, the cards) starts in view.
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [selectedRow]);
 
-  // Analysis type is now switched via the global sidebar (a direct link to
-  // ?analysis=primary|sensitivity), so re-seed the outcome checklist here
-  // whenever that param changes instead of inside a setter.
+  // Reset any open detail view when switching primary ↔ sensitivity.
   useEffect(() => {
-    setCheckedIds(collectLeafIds(analysisType === "primary" ? PRIMARY_OUTCOME_TREE : SENSITIVITY_OUTCOME_TREE));
+    setSelectedRow(null);
   }, [analysisType]);
 
-  const toggleOutcome = (id: string) => {
-    setCheckedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
+  const outcomesAssessed = sofRows.length;
+  const trialsContributing = Math.max(...sofRows.map((r) => r.studyCount));
+  const largestOutcome = Math.max(...sofRows.map((r) => r.participantCount));
 
-  const allSelected = checkedIds.length === allLeafIds.length;
-  const setAllOutcomes = (on: boolean) => setCheckedIds(on ? allLeafIds : []);
+  const stats = [
+    { value: String(outcomesAssessed), label: "Outcomes assessed" },
+    { value: String(trialsContributing), label: "Trials contributing" },
+    { value: `n=${largestOutcome.toLocaleString()}`, label: "Largest single outcome" },
+  ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
+    <div className="flex flex-col min-h-screen bg-white">
       <TopNav />
       <div className="flex flex-1 min-h-0">
         <AppSidebar />
 
-        {!isPanelOpen && (
-          <button
-            onClick={() => setIsPanelOpen(true)}
-            aria-label="Open outcomes panel"
-            className="sticky top-[104px] mt-4 ml-3 h-9 w-9 shrink-0 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors z-30 self-start"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-        )}
-
-        {/* Secondary contextual panel — Outcomes shown (page-specific, not
-            part of the global nav) */}
-        <NavPanelShell isOpen={isPanelOpen}>
-          <div className="flex flex-col gap-8 px-6 py-6">
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] text-gray-400 font-['Inter',sans-serif]">
-                Summary of findings
-              </p>
-              <button
-                onClick={() => setIsPanelOpen(false)}
-                aria-label="Collapse outcomes panel"
-                className="p-1 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-              >
-                <PanelLeftClose size={15} />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                  Outcomes shown
-                </span>
-                <button
-                  onClick={() => setAllOutcomes(!allSelected)}
-                  className="text-[11px] font-medium text-[#2E75B5] hover:underline"
-                >
-                  {allSelected ? "Clear all" : "Select all"}
-                </button>
-              </div>
-              {outcomeTree.map((node) => (
-                <OutcomeTreeNode
-                  key={node.kind === "leaf" ? node.id : node.label}
-                  node={node}
-                  checkedIds={checkedIds}
-                  onToggle={toggleOutcome}
-                />
-              ))}
-            </div>
-          </div>
-        </NavPanelShell>
-
-        {/* Main content */}
+        {/* Main content — Figma node 1:7658 */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2 min-h-[calc(100vh-88px)]">
-            {/* The page heading, search bar, and filters are hidden while an
-                outcome's Overview is open — the detail view takes the full
-                height so the focus stays on the outcome content. */}
-            {!selectedRow && (
+          {selectedRow ? (
+            <OutcomeDetailView row={selectedRow} onBack={() => setSelectedRow(null)} />
+          ) : (
+            <>
+              {/* Page header + stats — Figma node 1:7659 */}
               <div
-                className="rounded-t-[18px] p-8"
-                style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
+                className="px-8 pt-8 pb-6"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(177.26deg, rgba(133,200,250,0.15) 8.4861%, rgba(133,200,250,0) 58.303%)",
+                }}
               >
-                <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
-                  Systematic Review — mCRPC
-                </span>
-                <h1 className="text-[40px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-3">
+                <h1 className="pt-1 text-[40px] leading-[44px] font-semibold text-[#101828] font-['Benton_Modern_D',serif]">
                   Summary of Findings
                 </h1>
-                <p className="text-[15px] text-gray-600 font-['Inter',sans-serif] leading-relaxed max-w-2xl">
-                  GRADE Summary of Findings table for{" "}
-                  <span className="font-medium text-gray-800">
-                    {analysisType === "primary" ? "primary analysis" : "sensitivity analysis"}
-                  </span>
-                  . Certainty of evidence assessed using the GRADE approach. Use the sidebar to select which outcomes to display.
+                <p className="pt-3 text-[15px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[560px] max-w-full">
+                  Each card is one outcome from the GRADE Summary of Findings analysis. Card color and
+                  label follow the certainty of evidence — how confident the review is in the effect
+                  estimate, not the size of the effect.
                 </p>
 
-                <GlobalSearch placeholder="Search outcomes, effects, certainty levels…" className="mt-8" />
-
-                <FilterBar className="mt-4" />
+                {/* Stats — Figma node 1:7665 */}
+                <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-[795px]">
+                  {stats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="flex items-center gap-4 rounded-[12px] border-2 border-[#bfdbfe] bg-white px-6 py-5"
+                    >
+                      <span className="size-10 rounded-[8px] bg-[#e4f0fe] shrink-0" />
+                      <span className="flex flex-col items-start">
+                        <span className="text-[26px] leading-[26px] font-semibold text-[#2e75b6] font-['Articulat_CF',sans-serif]">
+                          {stat.value}
+                        </span>
+                        <span className="pt-0.5 text-[12px] leading-[16.5px] font-medium text-black font-['Inter',sans-serif]">
+                          {stat.label}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            )}
 
-            {selectedRow ? (
-              <OutcomeDetailView
-                row={selectedRow}
-                onBack={() => setSelectedRow(null)}
-              />
-            ) : (
-              <div className="p-8">
-                <GradeTable
-                  rows={sofRows}
-                  visibleOutcomeIds={checkedIds}
-                  comparison={`mCRPC — ${analysisType === "primary" ? "Primary" : "Sensitivity"} Analysis`}
-                  onRowClick={(row) => row.domains && setSelectedRow(row)}
-                  highlightId={highlightId}
-                />
+              {/* Certainty legend — Figma node 1:7688 */}
+              <div className="mx-8 flex flex-wrap items-center gap-5 border-b border-[#f3f4f6] pb-6 pr-8">
+                <span className="text-[11px] font-bold uppercase tracking-[0.88px] text-[#9ca3af] font-['Inter',sans-serif]">
+                  Certainty of evidence
+                </span>
+                {LEGEND_LEVELS.map((level) => (
+                  <span key={level} className="flex items-center gap-1.5">
+                    <span
+                      className="size-2 rounded-[4px] shrink-0"
+                      style={{ backgroundColor: CERTAINTY_THEME[level].dot }}
+                    />
+                    <span className="text-[12px] text-[#374151] font-['Articulat_CF',sans-serif]">
+                      {level}
+                    </span>
+                  </span>
+                ))}
               </div>
-            )}
-          </main>
+
+              {/* Outcome cards — Figma node 1:7704 */}
+              <div className="px-8 pt-6 pb-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[30px]">
+                {sofRows.map((row) => (
+                  <OutcomeCard key={row.id} row={row} onOpen={() => setSelectedRow(row)} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
