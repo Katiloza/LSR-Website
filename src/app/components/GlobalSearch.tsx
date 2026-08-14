@@ -38,11 +38,11 @@ const ALL_ITEMS: SearchItem[] = [
   { id: "st-second-line",   label: "Second-line",      sublabel: "Line of therapy — 5 trials",               category: "Summary Tables",    categoryIcon: Table,     to: "/summary-tables?tab=interactive-table", highlightId: "Second-line" },
 
   // Meta-Analysis
-  { id: "ma-primary",       label: "Primary Analysis",          sublabel: "Overall survival forest plot",    category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis", highlightId: "Primary" },
-  { id: "ma-sensitivity",   label: "Sensitivity Analysis",      sublabel: "BRCA+ subgroup forest plots",    category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis", highlightId: "Sensitivity" },
-  { id: "ma-os",            label: "Overall Survival",          sublabel: "Primary endpoint — HR 0.79",     category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis", highlightId: "Primary" },
-  { id: "ma-pfs",           label: "Progression-free Survival", sublabel: "Primary endpoint — HR 0.61",     category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis", highlightId: "Primary" },
-  { id: "ma-brca",          label: "BRCA+ Subgroup",            sublabel: "Sensitivity — BRCA1/2 positive", category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis", highlightId: "Sensitivity" },
+  { id: "ma-primary",       label: "Primary Analysis",          sublabel: "Overall survival forest plot",    category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis?analysis=Primary" },
+  { id: "ma-sensitivity",   label: "Sensitivity Analysis",      sublabel: "BRCA+ subgroup forest plots",    category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis?analysis=Sensitivity&outcome=os" },
+  { id: "ma-os",            label: "Overall Survival",          sublabel: "Primary endpoint — HR 0.79",     category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis?analysis=Primary" },
+  { id: "ma-pfs",           label: "Progression-free Survival", sublabel: "Primary endpoint — HR 0.61",     category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis?analysis=Sensitivity&outcome=pfs" },
+  { id: "ma-brca",          label: "BRCA+ Subgroup",            sublabel: "Sensitivity — BRCA1/2 positive", category: "Meta-Analysis",     categoryIcon: BarChart2, to: "/meta-analysis?analysis=Sensitivity&outcome=os" },
 
   // Summary of Findings
   { id: "sof-os",      label: "Overall Survival",          sublabel: "GRADE High — HR 0.79 (0.71–0.88)",   category: "Summary of Findings", categoryIcon: Layers, to: "/summary-of-findings?analysis=primary",     highlightId: "os" },
@@ -75,9 +75,24 @@ function scoreItem(item: SearchItem, q: string): number {
 interface GlobalSearchProps {
   placeholder?: string;
   className?: string;
+  /** Override the input chrome (used by the nav bar's pill variant). */
+  inputClassName?: string;
+  /** Override the leading search icon position/colour. */
+  iconClassName?: string;
 }
 
-export function GlobalSearch({ placeholder = "Search outcomes, studies, treatments…", className }: GlobalSearchProps) {
+const DEFAULT_INPUT_CLASS =
+  "w-full pl-12 pr-6 py-3 rounded-full border border-blue-100 shadow-[0px_1px_4px_0px_rgba(0,0,0,0.12)] bg-white text-[14px] font-['Inter',sans-serif] focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all";
+
+const DEFAULT_ICON_CLASS =
+  "absolute left-4 top-1/2 -translate-y-1/2 text-[#2E75B5] opacity-60 pointer-events-none z-10";
+
+export function GlobalSearch({
+  placeholder = "Search outcomes, studies, treatments…",
+  className,
+  inputClassName,
+  iconClassName,
+}: GlobalSearchProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -145,7 +160,7 @@ export function GlobalSearch({ placeholder = "Search outcomes, studies, treatmen
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
-      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2E75B5] opacity-60 pointer-events-none z-10" size={18} />
+      <Search className={iconClassName ?? DEFAULT_ICON_CLASS} size={18} />
       <input
         ref={inputRef}
         type="text"
@@ -154,7 +169,7 @@ export function GlobalSearch({ placeholder = "Search outcomes, studies, treatmen
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => query && setOpen(true)}
         onKeyDown={handleKey}
-        className="w-full pl-12 pr-6 py-3 rounded-full border border-blue-100 shadow-[0px_1px_4px_0px_rgba(0,0,0,0.12)] bg-white text-[14px] font-['Inter',sans-serif] focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all"
+        className={inputClassName ?? DEFAULT_INPUT_CLASS}
       />
 
       {open && results.length > 0 && (

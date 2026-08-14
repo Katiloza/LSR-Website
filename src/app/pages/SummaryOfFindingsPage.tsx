@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { BarChart, Activity, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { GlobalSearch } from "../components/GlobalSearch";
 import { TopNav } from "../components/TopNav";
-import { SideIconRail } from "../components/SideIconRail";
+import { AppSidebar } from "../components/AppSidebar";
 import { NavPanelShell } from "../components/NavPanelShell";
 import { GradeTable, SoFRow } from "../components/GradeTable";
 import { OutcomeDetailView } from "../components/OutcomeDetailView";
@@ -215,7 +215,7 @@ function OutcomeTreeNode({
 }
 
 export function SummaryOfFindingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const analysisType = (searchParams.get("analysis") as AnalysisType) ?? "primary";
   const highlightId = searchParams.get("hl") ?? undefined;
   const [isPanelOpen, setIsPanelOpen] = useState(true);
@@ -234,11 +234,12 @@ export function SummaryOfFindingsPage() {
     window.scrollTo({ top: 0 });
   }, [selectedRow]);
 
-  const setAnalysis = (t: AnalysisType) => {
-    const tree = t === "primary" ? PRIMARY_OUTCOME_TREE : SENSITIVITY_OUTCOME_TREE;
-    setCheckedIds(collectLeafIds(tree));
-    setSearchParams({ analysis: t });
-  };
+  // Analysis type is now switched via the global sidebar (a direct link to
+  // ?analysis=primary|sensitivity), so re-seed the outcome checklist here
+  // whenever that param changes instead of inside a setter.
+  useEffect(() => {
+    setCheckedIds(collectLeafIds(analysisType === "primary" ? PRIMARY_OUTCOME_TREE : SENSITIVITY_OUTCOME_TREE));
+  }, [analysisType]);
 
   const toggleOutcome = (id: string) => {
     setCheckedIds((prev) =>
@@ -253,44 +254,33 @@ export function SummaryOfFindingsPage() {
     <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
       <TopNav />
       <div className="flex flex-1 min-h-0">
-        <SideIconRail isPanelOpen={isPanelOpen} onTogglePanel={() => setIsPanelOpen((o) => !o)} />
+        <AppSidebar />
 
-        {/* On-page nav */}
+        {!isPanelOpen && (
+          <button
+            onClick={() => setIsPanelOpen(true)}
+            aria-label="Open outcomes panel"
+            className="sticky top-[104px] mt-4 ml-3 h-9 w-9 shrink-0 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors z-30 self-start"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+        )}
+
+        {/* Secondary contextual panel — Outcomes shown (page-specific, not
+            part of the global nav) */}
         <NavPanelShell isOpen={isPanelOpen}>
           <div className="flex flex-col gap-8 px-6 py-6">
-            <div>
-              <h2 className="text-[22px] font-medium text-[#2E75B5] tracking-tight font-['Benton_Modern_D',serif] mb-1">
-                Explore
-              </h2>
+            <div className="flex items-center justify-between">
               <p className="text-[12px] text-gray-400 font-['Inter',sans-serif]">
                 Summary of findings
               </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                Type of Analysis
-              </span>
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => setAnalysis("primary")}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all w-full",
-                    analysisType === "primary" ? "bg-[#F3F8FE] text-[#2E75B5]" : "text-gray-500 hover:bg-gray-50"
-                  )}
-                >
-                  Primary <BarChart size={18} />
-                </button>
-                <button
-                  onClick={() => setAnalysis("sensitivity")}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all w-full",
-                    analysisType === "sensitivity" ? "bg-[#F3F8FE] text-[#2E75B5]" : "text-gray-500 hover:bg-gray-50"
-                  )}
-                >
-                  Sensitivity <Activity size={18} />
-                </button>
-              </div>
+              <button
+                onClick={() => setIsPanelOpen(false)}
+                aria-label="Collapse outcomes panel"
+                className="p-1 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+              >
+                <PanelLeftClose size={15} />
+              </button>
             </div>
 
             <div className="flex flex-col gap-1">

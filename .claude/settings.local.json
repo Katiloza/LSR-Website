@@ -25,7 +25,17 @@
       "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__get_figma_skill",
       "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__create_new_file",
       "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__use_figma",
-      "Bash(python3 add_p6.py)"
+      "Bash(python3 add_p6.py)",
+      "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__get_design_context",
+      "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__get_metadata",
+      "Bash(jq 'type, length' /Users/katlozano/.claude/projects/-Users-katlozano-Desktop-LSR-website/5c2cc45a-a039-4bdb-80a7-6f175b6bc479/tool-results/mcp-5e52b65a-eb61-4d7e-ad10-2c392c9f3a18-get_metadata-1786656716186.txt)",
+      "Bash(jq -r .[0].text /Users/katlozano/.claude/projects/-Users-katlozano-Desktop-LSR-website/5c2cc45a-a039-4bdb-80a7-6f175b6bc479/tool-results/mcp-5e52b65a-eb61-4d7e-ad10-2c392c9f3a18-get_metadata-1786656716186.txt)",
+      "Read(//tmp/**)",
+      "mcp__5e52b65a-eb61-4d7e-ad10-2c392c9f3a18__get_screenshot",
+      "Bash(mkdir -p /tmp/figma_assets)",
+      "Bash(curl -sL -o /tmp/figma_assets/homepage.png \"https://www.figma.com/api/mcp/asset/98c8ce66-4f7c-447a-a868-c8d528608329.png\")",
+      "Bash(curl -sL -o /tmp/figma_assets/chevron.svg \"https://www.figma.com/api/mcp/asset/6ae36797-a01b-4500-9595-6f5e9e93ee95.svg\")",
+      "Bash(curl -sL -o /tmp/figma_assets/search.svg \"https://www.figma.com/api/mcp/asset/a0719eaa-eae2-4c9d-aeb6-a78555d9c16f.svg\")"
     ]
   }
 }

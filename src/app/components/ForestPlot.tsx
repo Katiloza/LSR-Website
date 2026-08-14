@@ -154,7 +154,7 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
         {/* Plot geometry mirrors the table exactly: the top padding matches the
             thead height and every row (studies + pooled) is the same fixed
             48px as its table row, so markers always sit beside their row. */}
-        <div className="col-span-5 flex flex-col relative px-[0px] pt-[36px] pb-[72px] m-[0px]">
+        <div className="col-span-5 flex flex-col relative px-[0px] pt-[35px] pb-[72px] m-[0px]">
           <div className="w-full relative border-l border-b border-gray-300">
             {/* Axis Title */}
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[13px] font-bold text-gray-900 font-['Inter',sans-serif]">

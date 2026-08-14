@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router";
-import { Construction, ChevronDown, ChevronRight } from "lucide-react";
+import { Construction, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { GlobalSearch } from "../components/GlobalSearch";
 import { TopNav } from "../components/TopNav";
-import { SideIconRail } from "../components/SideIconRail";
+import { AppSidebar } from "../components/AppSidebar";
 import { NavPanelShell } from "../components/NavPanelShell";
 import {
   SummaryTable,
@@ -199,16 +199,31 @@ export function SummaryTablesPage() {
     <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
       <TopNav />
       <div className="flex flex-1 min-h-0">
-        <SideIconRail isPanelOpen={isPanelOpen} onTogglePanel={() => setIsPanelOpen((o) => !o)} />
+        <AppSidebar />
 
-        {/* Left sidebar — Column Selector */}
+        {!isPanelOpen && (
+          <button
+            onClick={() => setIsPanelOpen(true)}
+            aria-label="Open column selector"
+            className="sticky top-[104px] mt-4 ml-3 h-9 w-9 shrink-0 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors z-30 self-start"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+        )}
+
+        {/* Secondary contextual panel — Column Selector (page-specific, not
+            part of the global nav) */}
         <NavPanelShell isOpen={isPanelOpen}>
           <div className="flex flex-col gap-5 px-6 py-6">
-            <div>
-              <h2 className="text-[22px] font-medium text-[#2E75B5] tracking-tight font-['Benton_Modern_D',serif] mb-1">
-                Summary Tables
-              </h2>
+            <div className="flex items-center justify-between">
               <p className="text-[12px] text-gray-400 font-['Inter',sans-serif]">Study characteristics & results</p>
+              <button
+                onClick={() => setIsPanelOpen(false)}
+                aria-label="Collapse column selector"
+                className="p-1 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+              >
+                <PanelLeftClose size={15} />
+              </button>
             </div>
 
             <div className="flex flex-col gap-2">

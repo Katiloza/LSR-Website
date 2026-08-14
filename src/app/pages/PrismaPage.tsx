@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { TopNav } from "../components/TopNav";
-import { SideIconRail } from "../components/SideIconRail";
-import { NavPanelShell } from "../components/NavPanelShell";
+import { AppSidebar } from "../components/AppSidebar";
 import { PrismaFlowchart, PrismaStage } from "../components/PrismaFlowchart";
 import { PrismaLivingSearch } from "../components/PrismaLivingSearch";
 import { CitationList } from "../components/CitationList";
@@ -12,11 +11,6 @@ import { cn } from "../lib/utils";
 
 type SidebarPanel = "flow" | "study-list";
 type PrismaView = "current-state" | "initial-search" | "living-search";
-
-const SIDEBAR_PANELS: { id: SidebarPanel; label: string }[] = [
-  { id: "flow", label: "PRISMA Flow" },
-  { id: "study-list", label: "Study List" },
-];
 
 const VIEW_OPTIONS: { id: PrismaView; label: string }[] = [
   { id: "current-state", label: "Current State" },
@@ -111,14 +105,8 @@ export function PrismaPage() {
   const activePanel = (searchParams.get("panel") as SidebarPanel) ?? "flow";
   const activeView = (searchParams.get("view") as PrismaView) ?? "current-state";
   const highlightStudy = searchParams.get("hl") ?? undefined;
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
   const { openCitation, openTrialList } = useCitation();
 
-  const setPanel = (p: SidebarPanel) => setSearchParams((prev) => {
-    const next = new URLSearchParams(prev);
-    next.set("panel", p);
-    return next;
-  });
   const setView = (v: PrismaView) => setSearchParams((prev) => {
     const next = new URLSearchParams(prev);
     next.set("panel", "flow");
@@ -140,39 +128,7 @@ export function PrismaPage() {
     <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
       <TopNav />
       <div className="flex flex-1 min-h-0">
-        <SideIconRail isPanelOpen={isPanelOpen} onTogglePanel={() => setIsPanelOpen((o) => !o)} />
-
-        {/* On-page nav — reduced to two options: the flow itself, and the flat
-            list of included trials. */}
-        <NavPanelShell isOpen={isPanelOpen}>
-          <div className="flex flex-col gap-8 px-6 py-6">
-            <div>
-              <h2 className="text-[22px] font-medium text-[#2E75B5] tracking-tight font-['Benton_Modern_D',serif] mb-1">
-                PRISMA
-              </h2>
-              <p className="text-[12px] text-gray-400 font-['Inter',sans-serif]">
-                Systematic search & screening
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              {SIDEBAR_PANELS.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setPanel(opt.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all w-full text-left",
-                    activePanel === opt.id
-                      ? "bg-[#F3F8FE] text-[#2E75B5]"
-                      : "text-gray-500 hover:bg-gray-50"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </NavPanelShell>
+        <AppSidebar />
 
         {/* Main content — no overflow container here so the flow's section
             anchor labels can stick relative to the page as the user scrolls */}
@@ -181,22 +137,19 @@ export function PrismaPage() {
             {/* Page header — trimmed (no search/filters) so the flow starts higher */}
             <div
               className="rounded-t-[18px] px-8 pt-6 pb-5"
-              style={{ background: "linear-gradient(160deg, rgba(133,200,250,0.15) 0%, rgba(255,255,255,0) 60%)" }}
+              style={{ background: "linear-gradient(177.97deg, rgba(133,200,250,0.15) 8.49%, rgba(133,200,250,0) 58.3%)" }}
             >
-              <span className="text-[13px] text-gray-500 font-['Articulat_CF',sans-serif] mb-1 block">
-                Systematic Review — mCRPC
-              </span>
-              <h1 className="text-[32px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-2">
-                {activePanel === "study-list" ? "Study List" : "PRISMA Flow"}
+              <h1 className="text-[40px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-2">
+                {activePanel === "study-list" ? "Study List" : "PRISMA"}
               </h1>
-              <p className="text-[14px] text-gray-600 font-['Inter',sans-serif] leading-relaxed max-w-2xl">
+              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-2xl">
                 {activePanel === "study-list"
                   ? "Every trial included in this living systematic review."
                   : activeView === "living-search"
                   ? "Automated search results retrieved each month across all configured databases."
                   : activeView === "initial-search"
-                  ? "The initial systematic search conducted at review inception. Only the Included stage is clickable."
-                  : "The current state of the living review. Only the Included stage is clickable."}
+                  ? "The initial systematic search conducted at review inception."
+                  : "The current state of the living review."}
               </p>
             </div>
 

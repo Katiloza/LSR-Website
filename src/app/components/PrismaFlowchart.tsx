@@ -41,7 +41,7 @@ const BRANCH_LEFT = 552;  // left edge of branch cards
 const BRANCH_W = 240;     // branch card width
 const ID_GAP = 20;        // gap between identification source cards
 const LABEL_W = 132;      // left rail that anchors each section label
-const STICKY_TOP = 84;    // sticky offset (clears the 72px sticky top-nav)
+const STICKY_TOP = 116;   // sticky offset (clears the 104px sticky top-nav)
 const LINE = "#8AA1C0";   // connector line (muted blue)
 const HEAD = "#5273A0";   // arrowhead (deeper blue)
 
@@ -101,8 +101,8 @@ function StageNode({ stage, isActive, onClick }: StageNodeProps) {
     return (
       <div
         className={cn(
-          "w-full text-left rounded-xl border-2 px-4 py-3",
-          hasShadow && "shadow-sm"
+          "w-full text-left rounded-[14px] border-2 px-4 py-3",
+          hasShadow && "shadow-[0px_1px_1.5px_rgba(0,0,0,0.1),0px_1px_1px_rgba(0,0,0,0.1)]"
         )}
         style={sharedStyle}
       >
@@ -116,8 +116,8 @@ function StageNode({ stage, isActive, onClick }: StageNodeProps) {
       onClick={onClick}
       aria-label={`${stage.label}: ${stage.count} references. Click to view studies.`}
       className={cn(
-        "w-full text-left rounded-xl border-2 px-4 py-3 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40",
-        "hover:scale-[1.01] shadow-sm hover:shadow-md",
+        "w-full text-left rounded-[14px] border-2 px-4 py-3 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40",
+        "hover:scale-[1.01] shadow-[0px_1px_1.5px_rgba(0,0,0,0.1),0px_1px_1px_rgba(0,0,0,0.1)] hover:shadow-md",
         isActive ? "ring-2 ring-[#2E75B5] shadow-md scale-[1.01]" : ""
       )}
       style={sharedStyle}
@@ -160,7 +160,7 @@ function Connector({
                 {/* horizontal arm from the central line to the card */}
                 <div
                   className="absolute"
-                  style={{ left: MAIN_CX, top: "50%", height: 1.5, width: BRANCH_LEFT - MAIN_CX, background: LINE, transform: "translateY(-50%)" }}
+                  style={{ left: MAIN_CX, top: "50%", height: 2, width: BRANCH_LEFT - MAIN_CX, background: LINE, transform: "translateY(-50%)" }}
                 />
                 <div className="absolute" style={{ left: BRANCH_LEFT - 7, top: "50%", transform: "translateY(-50%)", ...arrowRight }} />
                 <div style={{ width: BRANCH_W }}>
@@ -255,8 +255,8 @@ export function PrismaFlowchart({ stages, onNodeClick, activeNodeId }: PrismaFlo
   const presentSections = SECTIONS.map((s) => ({ ...s, cards: pick(s.cardIds) })).filter((s) => s.cards.length > 0);
 
   return (
-    <div className="w-full py-2">
-      <div className="mx-auto" style={{ width: LABEL_W + BLOCK_W, maxWidth: "100%" }}>
+    <div className="w-full">
+      <div className="mx-auto" style={{ width: LABEL_W + BLOCK_W, maxWidth: "100%", paddingTop: 32, paddingBottom: 32 }}>
         {/* Identification */}
         <SectionRow label="Identification">
           {idSources.length > 1 ? (
