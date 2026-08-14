@@ -8,11 +8,8 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import liveLogo from "@/imports/logo.png";
 
 // Global nav — replaces the old icon-only rail plus every page's separate
 // "identity + primary nav" panel with one persistent sidebar. Structure and
@@ -191,37 +188,13 @@ function Section({ section, pathname, params, navigate }: { section: NavSection;
 }
 
 export function AppSidebar() {
-  const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const goTo = (to: string) => navigate(to);
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        aria-label="Open sidebar"
-        className="sticky top-[104px] mt-4 ml-3 h-9 w-9 shrink-0 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors z-50 self-start"
-      >
-        <PanelLeftOpen size={18} />
-      </button>
-    );
-  }
-
   return (
-    <div className="sticky top-[104px] h-[calc(100vh-104px)] w-[222px] bg-white border-r border-[#99a1af] flex flex-col items-center gap-[30px] py-8 shrink-0 z-40 overflow-y-auto">
-      <div className="w-full px-6 flex items-center justify-between">
-        <img src={liveLogo} alt="Living Interactive Evidence Synthesis" className="h-10 w-auto object-contain" />
-        <button
-          onClick={() => setIsOpen(false)}
-          aria-label="Collapse sidebar"
-          className="p-1 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-        >
-          <PanelLeftClose size={16} />
-        </button>
-      </div>
-
+    <div className="sticky top-[104px] h-[calc(100vh-104px)] w-[222px] bg-white border-r border-[#99a1af] flex flex-col items-center py-8 shrink-0 z-40 overflow-y-auto">
       <div className="flex flex-col items-start gap-6 w-full">
         <button
           onClick={() => goTo("/home")}
