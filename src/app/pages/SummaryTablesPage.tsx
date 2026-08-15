@@ -282,7 +282,7 @@ export function SummaryTablesPage() {
             <h1 className="text-[40px] leading-[50px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] pt-1">
               {activeTabLabel}
             </h1>
-            <p className="pt-3 text-[15px] leading-[24.375px] text-[#4a5565] font-['Inter',sans-serif] w-[672px] max-w-full">
+            <p className="pt-3 text-[15px] leading-[24.375px] text-[#4a5565] font-['Inter',sans-serif] w-[672px] max-w-full line-clamp-2">
               Study characteristics, population details, and results from all {MOCK_STUDIES.length} clinical
               trials included in the living systematic review. Filter by study characteristics or toggle
               column visibility.

@@ -138,7 +138,7 @@ export function SummaryOfFindingsPage() {
                 <h1 className="pt-1 text-[40px] leading-[44px] font-semibold text-[#101828] font-['Benton_Modern_D',serif]">
                   Summary of Findings
                 </h1>
-                <p className="pt-3 text-[15px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[560px] max-w-full">
+                <p className="pt-3 text-[15px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[800px] max-w-full line-clamp-2">
                   Each card is one outcome from the GRADE Summary of Findings analysis. Card color and
                   label follow the certainty of evidence — how confident the review is in the effect
                   estimate, not the size of the effect.

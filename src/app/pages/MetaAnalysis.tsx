@@ -144,7 +144,7 @@ export function MetaAnalysis() {
           <h1 className="text-[48px] leading-[60px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] pt-2">
             {analysisType} Meta-Analysis
           </h1>
-          <p className="pt-4 text-[16px] leading-[26px] text-[#4a5565] font-['Inter',sans-serif] max-w-[690px]">
+          <p className="pt-4 text-[16px] leading-[26px] text-[#4a5565] font-['Inter',sans-serif] max-w-[760px] line-clamp-2">
             Results are summarized as forest plots for primary analysis, sensitivity analysis, and
             subgroup pairwise meta-analysis. Users can choose to view results for their outcome of
             interest.

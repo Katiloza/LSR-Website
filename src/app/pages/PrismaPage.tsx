@@ -139,7 +139,7 @@ export function PrismaPage() {
               <h1 className="text-[32px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-1">
                 {activePanel === "study-list" ? "Study List" : "Study selection"}
               </h1>
-              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-3xl">
+              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-3xl line-clamp-2">
                 {activePanel === "study-list"
                   ? "Every trial included in this living systematic review."
                   : activeView === "living-search"
