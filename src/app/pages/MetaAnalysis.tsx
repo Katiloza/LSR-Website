@@ -144,10 +144,9 @@ export function MetaAnalysis() {
           <h1 className="text-[48px] leading-[60px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] pt-2">
             {analysisType} Meta-Analysis
           </h1>
-          <p className="pt-4 text-[16px] leading-[26px] text-[#4a5565] font-['Inter',sans-serif] max-w-[690px]">
+          <p className="pt-4 text-[16px] leading-[26px] text-[#4a5565] font-['Inter',sans-serif] max-w-[760px] line-clamp-2">
             Results are summarized as forest plots for primary analysis, sensitivity analysis, and
-            subgroup pairwise meta-analysis. Users can choose to view results for their outcome of
-            interest.
+            subgroup pairwise meta-analysis.
           </p>
 
           {/* Outcome-family tabs + colour guide */}
@@ -182,16 +181,16 @@ export function MetaAnalysis() {
         <div className="px-8 pt-5 pb-12 flex flex-col gap-5">
           {/* Adverse-events sub-toggle — Figma node 13:5771 */}
           {activeTab.groups && (
-            <div className="inline-flex self-start rounded-full border border-gray-200 bg-gray-50 p-1">
+            <div className="inline-flex self-start rounded-full border border-[#1B3A63] bg-white p-1">
               {activeTab.groups.map((group) => (
                 <button
                   key={group.id}
                   onClick={() => patchParams({ group: group.id, outcome: null })}
                   className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[12px] font-medium font-['Inter',sans-serif] transition-colors",
+                    "rounded-full px-4 py-1.5 text-[13px] font-medium font-['Inter',sans-serif] transition-colors",
                     activeGroup?.id === group.id
-                      ? "bg-white text-[#101828] shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-[#1B3A63] text-white"
+                      : "text-[#101828] hover:bg-[#E4F0FE]"
                   )}
                 >
                   {group.label}

@@ -17,7 +17,6 @@ type AnalysisType = "primary" | "sensitivity";
 const T = CANONICAL_TRIAL_NAMES;
 
 const PRIMARY_SOF_ROWS: SoFRow[] = [
-] = [
   {
     id: "os", outcome: "Overall survival", studyCount: 12, participantCount: 14832,
     relativeEffect: "HR 0.79", relativeEffectCI: "(0.71–0.88)",
@@ -95,8 +94,13 @@ export function SummaryOfFindingsPage() {
   const analysisType = (searchParams.get("analysis") as AnalysisType) ?? "primary";
   const [selectedRow, setSelectedRow] = useState<SoFRow | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  // Figma node 1:7688 — "Sort by Certainty of Evidence" pills; "All" is the
+  // default and the four GRADE levels narrow the card grid below.
+  const [certaintyFilter, setCertaintyFilter] = useState<CertaintyLevel | "All">("All");
 
   const sofRows = analysisType === "primary" ? PRIMARY_SOF_ROWS : SENSITIVITY_SOF_ROWS;
+  const visibleRows =
+    certaintyFilter === "All" ? sofRows : sofRows.filter((r) => r.certainty === certaintyFilter);
 
   // Opening or closing an outcome's Overview jumps back to the top so the
   // full-height detail view (and, on back, the cards) starts in view.
@@ -138,10 +142,10 @@ export function SummaryOfFindingsPage() {
                 <h1 className="pt-1 text-[40px] leading-[44px] font-semibold text-[#101828] font-['Benton_Modern_D',serif]">
                   Summary of Findings
                 </h1>
-                <p className="pt-3 text-[15px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[560px] max-w-full">
+                <p className="pt-3 text-[15px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[800px] max-w-full line-clamp-2">
                   Each card is one outcome from the GRADE Summary of Findings analysis. Card color and
-                  label follow the certainty of evidence — how confident the review is in the effect
-                  estimate, not the size of the effect.
+                  label follow the certainty of evidence in how confident the review is in the effect
+                  estimate.
                 </p>
 
                 {/* Stats — Figma node 1:7665 */}
@@ -159,22 +163,48 @@ export function SummaryOfFindingsPage() {
                 </div>
               </div>
 
-              {/* Certainty legend — Figma node 1:7688 */}
-              <div className="mx-8 flex flex-wrap items-center gap-5 border-b border-[#f3f4f6] pb-6 pr-8">
-                <span className="text-[11px] font-bold uppercase tracking-[0.88px] text-[#9ca3af] font-['Inter',sans-serif]">
-                  Certainty of evidence
+              {/* Certainty filter — Figma node 1:7688 */}
+              <div className="mx-8 flex flex-wrap items-center gap-3 border-b border-[#f3f4f6] pb-6 pr-8">
+                <span className="text-[13px] font-medium text-[#101828] font-['Inter',sans-serif] mr-2">
+                  Sort by Certainty of Evidence:
                 </span>
-                {LEGEND_LEVELS.map((level) => (
-                  <span key={level} className="flex items-center gap-1.5">
-                    <span
-                      className="size-2 rounded-[4px] shrink-0"
-                      style={{ backgroundColor: CERTAINTY_THEME[level].dot }}
-                    />
-                    <span className="text-[12px] text-[#374151] font-['Articulat_CF',sans-serif]">
+
+                <button
+                  onClick={() => setCertaintyFilter("All")}
+                  aria-pressed={certaintyFilter === "All"}
+                  className={
+                    "rounded-full px-4 py-1.5 text-[12px] font-semibold font-['Inter',sans-serif] border transition-colors " +
+                    (certaintyFilter === "All"
+                      ? "bg-[#1B3A63] border-[#1B3A63] text-white"
+                      : "bg-white border-[#d1d5dc] text-[#101828] hover:bg-gray-50")
+                  }
+                >
+                  All
+                </button>
+
+                {LEGEND_LEVELS.map((level) => {
+                  const active = certaintyFilter === level;
+                  return (
+                    <button
+                      key={level}
+                      onClick={() => setCertaintyFilter(active ? "All" : level)}
+                      aria-pressed={active}
+                      className={
+                        "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium font-['Inter',sans-serif] border transition-colors " +
+                        (active
+                          ? "border-transparent text-white"
+                          : "bg-white border-[#d1d5dc] text-[#101828] hover:bg-gray-50")
+                      }
+                      style={active ? { backgroundColor: CERTAINTY_THEME[level].dot } : undefined}
+                    >
+                      <span
+                        className="size-2 rounded-full shrink-0"
+                        style={{ backgroundColor: active ? "#fff" : CERTAINTY_THEME[level].dot }}
+                      />
                       {level}
-                    </span>
-                  </span>
-                ))}
+                    </button>
+                  );
+                })}
 
                 <button
                   onClick={() => setGuideOpen(true)}
@@ -187,7 +217,7 @@ export function SummaryOfFindingsPage() {
 
               {/* Outcome cards — Figma node 1:7704 */}
               <div className="px-8 pt-6 pb-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[30px]">
-                {sofRows.map((row) => (
+                {visibleRows.map((row) => (
                   <OutcomeSummaryCard
                     key={row.id}
                     name={row.outcome}

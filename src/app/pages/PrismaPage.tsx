@@ -29,9 +29,9 @@ const CURRENT_STATE_STAGES: PrismaStage[] = [
   { id: "auto-update",  label: "Records identified through automatic update",       count: 7494,  sublabel: "Monthly automated search",                    type: "total" },
   { id: "manual-update",label: "Records identified through manual update",          count: 38,    sublabel: "Grey literature, expert contact",              type: "total" },
   // Deduplication
-  { id: "total-identified",   label: "Total Records Identified",                   count: 34127, type: "include" },
+  { id: "total-identified",   label: "Total records identified",                   count: 34127, type: "include" },
   { id: "records-after-dedup",label: "Records after removing duplicates",           count: 29419, type: "include" },
-  { id: "duplicates",         label: "Duplicates Records",                          count: 4708,  type: "exclude" },
+  { id: "duplicates",         label: "Duplicate records",                           count: 4708,  type: "exclude" },
   // Screening
   { id: "records-screened",   label: "Records screened",                            count: 28514, type: "include" },
   { id: "currently-screening",label: "Currently screening",                         count: 905,   type: "screening" },
@@ -51,7 +51,7 @@ const INITIAL_STATE_STAGES: PrismaStage[] = [
   { id: "databases",          label: "Initial search from databases",               count: 26595, sublabel: "MEDLINE, Embase, CENTRAL, ClinicalTrials.gov", type: "total" },
   // Deduplication
   { id: "records-after-dedup",label: "Records after removing duplicates",           count: 21887, type: "include" },
-  { id: "duplicates",         label: "Duplicates Records",                          count: 4708,  type: "exclude" },
+  { id: "duplicates",         label: "Duplicate records",                           count: 4708,  type: "exclude" },
   // Screening
   { id: "records-screened",   label: "Records screened",                            count: 21887, type: "include" },
   { id: "excluded-title",     label: "Excluded by title",                           count: 20187, type: "exclude" },
@@ -139,7 +139,7 @@ export function PrismaPage() {
               <h1 className="text-[32px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-1">
                 {activePanel === "study-list" ? "Study List" : "Study selection"}
               </h1>
-              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-3xl">
+              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-3xl line-clamp-2">
                 {activePanel === "study-list"
                   ? "Every trial included in this living systematic review."
                   : activeView === "living-search"
