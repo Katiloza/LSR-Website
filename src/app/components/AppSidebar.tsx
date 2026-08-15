@@ -112,7 +112,7 @@ function LeafRow({ link, active, indent, height = 40, navigate }: { link: LeafLi
     <button
       onClick={() => navigate(link.to)}
       className={cn(
-        "flex items-center py-2 rounded-[10px] w-full text-left text-[12px] font-medium leading-[15px] font-['Inter',sans-serif] transition-colors",
+        "flex items-center py-2 rounded-[10px] w-full text-left text-[14px] font-medium leading-[15px] font-['Inter',sans-serif] transition-colors",
         active ? "bg-[#E4F0FE] text-[#2E75B5]" : "text-black hover:bg-gray-50"
       )}
       style={{ paddingLeft: indent, height }}
@@ -123,15 +123,15 @@ function LeafRow({ link, active, indent, height = 40, navigate }: { link: LeafLi
 }
 
 function ComingSoonRow({ leaf, indent, height = 40 }: { leaf: ComingSoonLeaf; indent: number; height?: number }) {
+  // Figma nodes 1:240 / 1:225 / 1:227 — grayed-out label only, no "Coming Soon" tag.
   return (
     <div
-      className="flex items-center gap-2 w-full text-left font-['Inter',sans-serif] cursor-default"
+      className="flex items-center w-full text-left font-['Inter',sans-serif] cursor-default"
       style={{ paddingLeft: indent, height }}
     >
-      <span className="text-[12px] font-medium leading-[15px] text-[#d1d5dc] whitespace-nowrap">
+      <span className="text-[14px] font-medium leading-[15px] text-[#d1d5dc] whitespace-nowrap">
         {leaf.label}
       </span>
-      <span className="text-[6px] leading-[13px] text-[#99a1af]">Coming Soon</span>
     </div>
   );
 }
