@@ -49,7 +49,24 @@ export function OutcomeSummaryCard({
 
   return (
     <div
-      className="rounded-[10px] overflow-hidden border-2 bg-white shrink-0 transition-colors"
+      role={onAction ? "button" : undefined}
+      tabIndex={onAction ? 0 : undefined}
+      onClick={onAction}
+      onKeyDown={
+        onAction
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onAction();
+              }
+            }
+          : undefined
+      }
+      aria-pressed={onAction ? selected : undefined}
+      className={cn(
+        "group rounded-[10px] overflow-hidden border-2 bg-white shrink-0 transition-colors",
+        onAction && "cursor-pointer hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40 focus:ring-offset-1"
+      )}
       style={{ borderColor: selected ? bg : "#E5E7EB", width }}
     >
       <div className="px-4 py-3 flex flex-col gap-1" style={{ backgroundColor: bg, color: text }}>
@@ -83,19 +100,20 @@ export function OutcomeSummaryCard({
           ))}
         </div>
 
-        <button
-          onClick={onAction}
-          aria-pressed={selected}
+        {/* Purely visual now — the whole card is the click target (see the
+            outer div's onClick), so this can't be a nested <button>. */}
+        <span
+          aria-hidden="true"
           className={cn(
             "self-start flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold font-['Inter',sans-serif] transition-colors",
             selected
               ? "bg-[#2E75B5] text-white"
-              : "border border-[#2E75B5] text-[#2E75B5] hover:bg-[#E4F0FE]"
+              : "border border-[#2E75B5] text-[#2E75B5] group-hover:bg-[#E4F0FE]"
           )}
         >
           {selected ? "Showing below" : actionLabel}
           {selected && <ChevronDown size={13} />}
-        </button>
+        </span>
       </div>
     </div>
   );

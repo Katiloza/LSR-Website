@@ -28,9 +28,17 @@ interface NestedGroup {
   isActive: (pathname: string, params: URLSearchParams) => boolean;
   children: LeafLink[];
 }
-type GroupChild = LeafLink | NestedGroup;
+/** Not-yet-available leaf, per Figma node 1:189 (grayed out, "Coming Soon" tag, unclickable). */
+interface ComingSoonLeaf {
+  label: string;
+  comingSoon: true;
+}
+type GroupChild = LeafLink | NestedGroup | ComingSoonLeaf;
 function isNestedGroup(c: GroupChild): c is NestedGroup {
   return "children" in c;
+}
+function isComingSoon(c: GroupChild): c is ComingSoonLeaf {
+  return "comingSoon" in c;
 }
 interface NavSection {
   key: string;
@@ -69,14 +77,8 @@ const SECTIONS: NavSection[] = [
     rowHeight: 40,
     children: [
       { label: "Primary", to: "/meta-analysis?analysis=Primary", isActive: (p, sp) => onMeta(p) && (sp.get("analysis") ?? "Primary") === "Primary" },
-      {
-        label: "Sensitivity",
-        isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity",
-        children: [
-          { label: "Overall survival",          to: "/meta-analysis?analysis=Sensitivity&outcome=brca-pos-c1",     isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" && (sp.get("outcome") ?? "brca-pos-c1") === "brca-pos-c1" },
-          { label: "Progression-free survival", to: "/meta-analysis?analysis=Sensitivity&outcome=pfs-brca-pos-c1", isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" && sp.get("outcome") === "pfs-brca-pos-c1" },
-        ],
-      },
+      // Figma node 16:6191 — grayed out, "Coming Soon" tag, not a working route.
+      { label: "Sensitivity", comingSoon: true },
     ],
   },
   {
@@ -87,8 +89,9 @@ const SECTIONS: NavSection[] = [
     rowHeight: 48,
     children: [
       { label: "Interactive Table", to: "/summary-tables?tab=interactive-table", isActive: (p, sp) => onSummaryTables(p) && (sp.get("tab") ?? "interactive-table") === "interactive-table" },
-      { label: "Results Tables",    to: "/summary-tables?tab=results-table",     isActive: (p, sp) => onSummaryTables(p) && sp.get("tab") === "results-table" },
-      { label: "Traffic Plot",      to: "/summary-tables?tab=traffic-plot",      isActive: (p, sp) => onSummaryTables(p) && sp.get("tab") === "traffic-plot" },
+      // Figma nodes 16:6195 / 16:6198 — grayed out, "Coming Soon" tag, not working routes.
+      { label: "Results Tables", comingSoon: true },
+      { label: "Traffic Plot", comingSoon: true },
     ],
   },
   {
@@ -116,6 +119,20 @@ function LeafRow({ link, active, indent, height = 40, navigate }: { link: LeafLi
     >
       {link.label}
     </button>
+  );
+}
+
+function ComingSoonRow({ leaf, indent, height = 40 }: { leaf: ComingSoonLeaf; indent: number; height?: number }) {
+  return (
+    <div
+      className="flex items-center gap-2 w-full text-left font-['Inter',sans-serif] cursor-default"
+      style={{ paddingLeft: indent, height }}
+    >
+      <span className="text-[12px] font-medium leading-[15px] text-[#d1d5dc] whitespace-nowrap">
+        {leaf.label}
+      </span>
+      <span className="text-[6px] leading-[13px] text-[#99a1af]">Coming Soon</span>
+    </div>
   );
 }
 
@@ -183,6 +200,8 @@ function Section({ section, pathname, params, navigate }: { section: NavSection;
           {section.children.map((child) =>
             isNestedGroup(child) ? (
               <NestedGroupRow key={child.label} group={child} params={params} pathname={pathname} navigate={navigate} />
+            ) : isComingSoon(child) ? (
+              <ComingSoonRow key={child.label} leaf={child} indent={48} height={section.rowHeight} />
             ) : (
               <LeafRow
                 key={child.label}
