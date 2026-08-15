@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { ChevronLeft, Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import { GlobalSearch } from "./GlobalSearch";
-import liveLogo from "@/imports/logo.png";
 
 const PROJECTS = [
   { id: "mcrpc", label: "mCRPC", fullName: "Metastatic Castration-Resistant Prostate Cancer" },
@@ -22,12 +21,10 @@ export function TopNav() {
   const currentProject = PROJECTS.find((p) => p.id === activeProject)!;
 
   return (
-    <nav className="h-[104px] bg-white border-b border-[#99a1af] flex items-center gap-6 px-6 sticky top-0 z-[60] w-full">
-      {/* Logo */}
-      <div className="flex items-center shrink-0">
-        <img src={liveLogo} alt="Living Interactive Evidence Synthesis" className="h-10 w-auto object-contain" />
-      </div>
-
+    // Figma node 1:47 — the Navigation symbol sits to the RIGHT of the sidebar
+    // (x=222) and carries no logo; the wordmark lives in the sidebar column,
+    // which spans the full page height.
+    <nav className="h-[104px] bg-white border-b border-[#99a1af] flex items-center px-6 sticky top-0 z-[60] w-full">
       {/* Nav buttons, then the search field filling the remaining width —
           70px gap between the two groups, per the design. */}
       <div className="flex flex-1 min-w-0 items-center gap-[70px]">

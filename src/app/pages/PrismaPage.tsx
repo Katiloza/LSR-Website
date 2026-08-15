@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { TopNav } from "../components/TopNav";
-import { AppSidebar } from "../components/AppSidebar";
+import { PageShell } from "../components/PageShell";
 import { PrismaFlowchart, PrismaStage } from "../components/PrismaFlowchart";
 import { PrismaLivingSearch } from "../components/PrismaLivingSearch";
 import { CitationList } from "../components/CitationList";
+import { FilterBar } from "../components/FilterBar";
 import { useCitation } from "../lib/CitationContext";
 import { CANONICAL_TRIAL_NAMES } from "../lib/citations";
 import { cn } from "../lib/utils";
@@ -89,12 +89,12 @@ const LIVING_SEARCH_DATA = [
   { year: 2026, month: 4, count: 79 }, { year: 2026, month: 5, count: 98 }, { year: 2026, month: 6, count: 73 },
 ];
 
+// Figma node 1:473 — the filter pills sit between the page header and the
+// reference list, above a hairline rule that the list hangs from.
 function StudyListView() {
   return (
-    <div className="flex flex-col gap-1 max-w-3xl">
-      <p className="text-[13px] text-gray-500 font-['Inter',sans-serif]">
-        The {INCLUDED_TRIALS.length} trials included in this living systematic review. Each entry links to the published study.
-      </p>
+    <div className="flex flex-col">
+      <FilterBar className="pb-4 border-b border-[#2E75B5]/40" />
       <CitationList trialNames={INCLUDED_TRIALS} />
     </div>
   );
@@ -125,39 +125,36 @@ export function PrismaPage() {
   }, [highlightStudy]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFDFD]">
-      <TopNav />
-      <div className="flex flex-1 min-h-0">
-        <AppSidebar />
-
+    <PageShell>
         {/* Main content — no overflow container here so the flow's section
             anchor labels can stick relative to the page as the user scrolls */}
         <div className="flex-1 flex flex-col min-w-0">
-          <main className="rounded-[20px] bg-white border-2 border-[#D1D5DC]/25 m-2">
-            {/* Page header — trimmed (no search/filters) so the flow starts higher */}
+          <main className="bg-white">
+            {/* Page header — Figma node 13:2803. Flat on the page (no card
+                chrome) with the gradient wash running the full column width. */}
             <div
-              className="rounded-t-[18px] px-8 pt-6 pb-5"
+              className="px-8 pt-6 pb-5"
               style={{ background: "linear-gradient(177.97deg, rgba(133,200,250,0.15) 8.49%, rgba(133,200,250,0) 58.3%)" }}
             >
-              <h1 className="text-[40px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-2">
-                {activePanel === "study-list" ? "Study List" : "PRISMA"}
+              <h1 className="text-[32px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-1">
+                {activePanel === "study-list" ? "Study List" : "Study selection"}
               </h1>
-              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-2xl">
+              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-3xl">
                 {activePanel === "study-list"
                   ? "Every trial included in this living systematic review."
                   : activeView === "living-search"
                   ? "Automated search results retrieved each month across all configured databases."
                   : activeView === "initial-search"
                   ? "The initial systematic search conducted at review inception."
-                  : "The current state of the living review."}
+                  : "Expand the flow below to trace how the living search was screened down to this set."}
               </p>
             </div>
 
-            <div className="p-8 pt-2">
+            <div className="px-8 pt-2 pb-8">
               {activePanel === "flow" && (
                 <>
                   {/* Tab bar */}
-                  <div className="flex gap-1 border-b border-gray-100 mb-8">
+                  <div className="flex gap-1 border-b border-gray-100 mb-8 max-w-[952px]">
                     {VIEW_OPTIONS.map((opt) => (
                       <button
                         key={opt.id}
@@ -190,7 +187,6 @@ export function PrismaPage() {
             </div>
           </main>
         </div>
-      </div>
-    </div>
+    </PageShell>
   );
 }

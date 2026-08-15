@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { Construction, ChevronDown, ChevronRight } from "lucide-react";
-import { TopNav } from "../components/TopNav";
-import { AppSidebar } from "../components/AppSidebar";
+import { PageShell } from "../components/PageShell";
 import {
   SummaryTable,
   StudyRow,
@@ -269,13 +268,9 @@ export function SummaryTablesPage() {
   const activeTabLabel = TABS.find((t) => t.id === activeTab)?.label ?? "Interactive Table";
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <TopNav />
-      <div className="flex flex-1 min-h-0">
-        <AppSidebar />
-
+    <PageShell>
         {/* Main content — Figma node 1:657 */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Page header — Figma node 1:658 */}
           <div
             className="flex flex-col items-start p-8"
@@ -347,7 +342,6 @@ export function SummaryTablesPage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { ArrowUpRight } from "lucide-react";
-import { TopNav } from "../components/TopNav";
-import { AppSidebar } from "../components/AppSidebar";
+import { Palette } from "lucide-react";
+import { PageShell } from "../components/PageShell";
 import { SoFRow } from "../components/GradeTable";
 import { CertaintyLevel } from "../components/CertaintyBadge";
 import { OutcomeDetailView } from "../components/OutcomeDetailView";
+import { OutcomeSummaryCard } from "../components/OutcomeSummaryCard";
+import { CertaintyColorGuide } from "../components/CertaintyColorGuide";
 import { CANONICAL_TRIAL_NAMES } from "../lib/citations";
 
 type AnalysisType = "primary" | "sensitivity";
@@ -87,103 +88,13 @@ const LEGEND_LEVELS: CertaintyLevel[] = ["High", "Moderate", "Low", "Very Low"];
 
 /** Card face copy — the design splits some outcome names into a title plus a
  *  smaller grade qualifier (e.g. "All-cause adverse events" / "grade 5"). */
-const CARD_COPY: Record<string, { title: string; qualifier?: string }> = {
-  os:        { title: "Overall survival" },
-  pfs:       { title: "Progression-free survival" },
-  orr:       { title: "Objective response" },
-  crr:       { title: "Complete response" },
-  prr:       { title: "Partial response" },
-  "ae-any":  { title: "All-cause adverse events", qualifier: "any grade" },
-  "ae-g3":   { title: "All-cause adverse events", qualifier: "grade 3 or higher" },
-  "ae-g5":   { title: "All-cause adverse events", qualifier: "grade 5" },
-  "trae-any":{ title: "Treatment-related adverse events", qualifier: "any grade" },
-  "trae-g3": { title: "Treatment-related adverse events", qualifier: "grade 3 or higher" },
-  "trae-g5": { title: "Treatment-related adverse events", qualifier: "grade 5" },
-  hrqol:     { title: "Health-related quality of life" },
-};
 
-const COMPARISON_LABEL = "Combination therapy vs standard of care";
-
-function OutcomeCard({ row, onOpen }: { row: SoFRow; onOpen: () => void }) {
-  const theme = CERTAINTY_THEME[row.certainty];
-  const copy = CARD_COPY[row.id] ?? { title: row.outcome };
-
-  // "(1.28–1.71)" → "1.28–1.71" so the card reads "95% CI 1.28–1.71".
-  const ci = row.relativeEffectCI.replace(/^\(|\)$/g, "");
-
-  return (
-    <div
-      className="flex flex-col justify-between rounded-[20px] border-[1.5px] p-7 min-h-[379px] font-['Inter',sans-serif]"
-      style={{
-        backgroundColor: theme.bg,
-        borderColor: theme.border,
-        filter: "drop-shadow(0px 1px 1px rgba(0,0,0,0.05))",
-      }}
-    >
-      <div className="flex flex-col w-full">
-        {/* Certainty pill + study counts */}
-        <div className="flex items-start justify-between gap-3 w-full">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-2.5 py-1 shrink-0"
-            style={{ borderColor: theme.border }}
-          >
-            <span
-              className="size-1.5 rounded-[3px] shrink-0"
-              style={{ backgroundColor: theme.ink }}
-            />
-            <span
-              className="text-[11px] font-semibold whitespace-nowrap"
-              style={{ color: theme.ink }}
-            >
-              {row.certainty} certainty
-            </span>
-          </span>
-          <span className="text-[10px] leading-[13px] text-[#374151] text-right shrink-0">
-            n={row.studyCount} studies
-            <br />
-            {row.participantCount.toLocaleString()} participants
-          </span>
-        </div>
-
-        {/* Outcome name */}
-        <div className="flex flex-col gap-2 mt-2">
-          <h3 className="font-bold text-[#101828] text-[32px] leading-[32px]">
-            {copy.title}
-            {copy.qualifier && (
-              <span className="block text-[16px] leading-[26px] mt-1">{copy.qualifier}</span>
-            )}
-          </h3>
-          <p className="text-[12px] text-[#4b5563]">{COMPARISON_LABEL}</p>
-        </div>
-      </div>
-
-      {/* Effect estimate */}
-      <div className="flex flex-col w-full mt-6">
-        <p
-          className="font-bold text-[36px] leading-[36px] tracking-[-0.36px]"
-          style={{ color: theme.ink }}
-        >
-          {row.relativeEffect}
-        </p>
-        <p className="pt-1 text-[12px] text-[#6b7280]">95% CI {ci}</p>
-      </div>
-
-      <button
-        onClick={onOpen}
-        disabled={!row.domains}
-        className="mt-6 inline-flex items-center gap-2 text-[16px] text-black underline disabled:opacity-40 disabled:no-underline"
-      >
-        How is this summarized?
-        <ArrowUpRight size={14} className="shrink-0" />
-      </button>
-    </div>
-  );
-}
 
 export function SummaryOfFindingsPage() {
   const [searchParams] = useSearchParams();
   const analysisType = (searchParams.get("analysis") as AnalysisType) ?? "primary";
   const [selectedRow, setSelectedRow] = useState<SoFRow | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const sofRows = analysisType === "primary" ? PRIMARY_SOF_ROWS : SENSITIVITY_SOF_ROWS;
 
@@ -209,13 +120,9 @@ export function SummaryOfFindingsPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <TopNav />
-      <div className="flex flex-1 min-h-0">
-        <AppSidebar />
-
+    <PageShell>
         {/* Main content — Figma node 1:7658 */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0">
           {selectedRow ? (
             <OutcomeDetailView row={selectedRow} onBack={() => setSelectedRow(null)} />
           ) : (
@@ -238,20 +145,14 @@ export function SummaryOfFindingsPage() {
                 </p>
 
                 {/* Stats — Figma node 1:7665 */}
-                <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-[795px]">
+                <div className="mt-10 flex flex-wrap gap-16 max-w-[795px]">
                   {stats.map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="flex items-center gap-4 rounded-[12px] border-2 border-[#bfdbfe] bg-white px-6 py-5"
-                    >
-                      <span className="size-10 rounded-[8px] bg-[#e4f0fe] shrink-0" />
-                      <span className="flex flex-col items-start">
-                        <span className="text-[26px] leading-[26px] font-semibold text-[#2e75b6] font-['Articulat_CF',sans-serif]">
-                          {stat.value}
-                        </span>
-                        <span className="pt-0.5 text-[12px] leading-[16.5px] font-medium text-black font-['Inter',sans-serif]">
-                          {stat.label}
-                        </span>
+                    <div key={stat.label} className="flex flex-col items-start">
+                      <span className="text-[26px] leading-[30px] font-semibold text-[#2e75b6] font-['Articulat_CF',sans-serif]">
+                        {stat.value}
+                      </span>
+                      <span className="pt-1 text-[12px] leading-[16.5px] font-medium text-black font-['Inter',sans-serif]">
+                        {stat.label}
                       </span>
                     </div>
                   ))}
@@ -274,18 +175,35 @@ export function SummaryOfFindingsPage() {
                     </span>
                   </span>
                 ))}
+
+                <button
+                  onClick={() => setGuideOpen(true)}
+                  className="ml-auto flex items-center gap-1.5 rounded-full border border-[#2E75B5] bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#2E75B5] font-['Inter',sans-serif] hover:bg-[#E4F0FE] transition-colors"
+                >
+                  <Palette size={13} />
+                  Color guide
+                </button>
               </div>
 
               {/* Outcome cards — Figma node 1:7704 */}
               <div className="px-8 pt-6 pb-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[30px]">
                 {sofRows.map((row) => (
-                  <OutcomeCard key={row.id} row={row} onOpen={() => setSelectedRow(row)} />
+                  <OutcomeSummaryCard
+                    key={row.id}
+                    name={row.outcome}
+                    level={row.certainty}
+                    direction={row.direction}
+                    studies={row.studyCount}
+                    participants={row.participantCount}
+                    onAction={() => setSelectedRow(row)}
+                  />
                 ))}
               </div>
             </>
           )}
         </div>
-      </div>
-    </div>
+
+      <CertaintyColorGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+    </PageShell>
   );
 }
