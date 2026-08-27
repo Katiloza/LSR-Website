@@ -89,7 +89,7 @@ function ColumnTreeNode({
         <button
           onClick={() => onToggleCheck(node)}
           className={cn(
-            "flex items-center gap-2 text-left py-1.5 pr-2 flex-1 min-w-0 font-['Articulat_CF',sans-serif]",
+            "flex items-center gap-2 text-left py-1.5 pr-2 flex-1 min-w-0 font-['Inter',sans-serif]",
             depth === 0 ? "text-[13px] font-semibold" : "text-[12px]"
           )}
         >
@@ -152,8 +152,9 @@ function ColumnSelectorPill({
     };
   }, [open]);
 
-  // Title-case the ALL-CAPS schema label for the pill face, matching Figma.
-  const label = node.label.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+  // Schema labels are authored in sentence case, so the pill face is the
+  // label verbatim — no transform (which also keeps "NCT" from becoming "Nct").
+  const label = node.label;
 
   return (
     <div className="relative" ref={ref}>
@@ -162,7 +163,7 @@ function ColumnSelectorPill({
         aria-expanded={open}
         className={cn(
           "flex items-center gap-2 px-4 py-2 rounded-full border border-[#2E75B5] transition-colors",
-          "text-[11px] font-medium text-[#000105] tracking-[0.0645px] font-['Inter',sans-serif] leading-[16.5px]",
+          "text-[16px] font-medium text-[#000105] tracking-[0.0645px] font-['Inter',sans-serif] leading-[16.5px]",
           open ? "bg-[#EFF6FF]" : "bg-white hover:bg-[#F8FBFF]"
         )}
       >
@@ -222,7 +223,7 @@ function PlaceholderView({ title }: { title: string }) {
     <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-400">
       <Construction size={32} strokeWidth={1.5} />
       <div className="text-center">
-        <p className="text-[15px] font-medium text-gray-500 font-['Articulat_CF',sans-serif]">{title}</p>
+        <p className="text-[15px] font-medium text-gray-500 font-['Inter',sans-serif]">{title}</p>
         <p className="text-[13px] font-['Inter',sans-serif] mt-1">This view is under development.</p>
       </div>
     </div>
@@ -279,7 +280,7 @@ export function SummaryTablesPage() {
                 "linear-gradient(177.26deg, rgba(133,200,250,0.15) 8.4861%, rgba(133,200,250,0) 58.303%)",
             }}
           >
-            <h1 className="text-[40px] leading-[50px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] pt-1">
+            <h1 className="text-[40px] leading-[50px] font-semibold text-[#101828] font-serif pt-1">
               {activeTabLabel}
             </h1>
             <p className="pt-3 text-[15px] leading-[24.375px] text-[#4a5565] font-['Inter',sans-serif] w-[672px] max-w-full line-clamp-2">
@@ -294,12 +295,12 @@ export function SummaryTablesPage() {
               {/* Column selector — Figma node 1:664 */}
               <div className="flex flex-col gap-2 px-8 pt-4">
                 <div className="flex items-center justify-between w-[489px] max-w-full">
-                  <span className="text-[11px] leading-[16.5px] font-bold text-black uppercase tracking-[1.1645px] font-['Inter',sans-serif]">
-                    Column Selector
+                  <span className="text-[14px] leading-[18px] font-semibold text-black font-['Inter',sans-serif]">
+                    Column selector
                   </span>
                   <button
                     onClick={() => setAll(true)}
-                    className="text-[12px] leading-[18px] font-medium text-black font-['Inter',sans-serif] hover:underline"
+                    className="text-[14px] leading-[18px] font-medium text-black font-['Inter',sans-serif] hover:underline"
                   >
                     Reset all
                   </button>

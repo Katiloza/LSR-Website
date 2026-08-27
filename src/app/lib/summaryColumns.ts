@@ -8,7 +8,7 @@ export interface ColNode {
 }
 
 export const COLUMN_SCHEMA: ColNode[] = [
-  { key: "trial_characteristics", label: "TRIAL CHARACTERISTICS", children: [
+  { key: "trial_characteristics", label: "Trial characteristics", children: [
     { key: "trial_characteristics.nct", label: "NCT" },
     { key: "trial_characteristics.pmid", label: "PMID" },
     { key: "trial_characteristics.trial_name", label: "Trial Name" },
@@ -38,7 +38,7 @@ export const COLUMN_SCHEMA: ColNode[] = [
     { key: "trial_characteristics.prior_therapy_in_mcrpc_setting", label: "Prior Therapy in mCRPC Setting" },
     { key: "trial_characteristics.prior_therapy_in_m0_crpc_setting", label: "Prior Therapy in M0 CRPC Setting" }
   ] },
-  { key: "population_characteristics", label: "POPULATION CHARACTERISTICS", children: [
+  { key: "population_characteristics", label: "Population characteristics", children: [
     { key: "population_characteristics.age_in_years_median_range", label: "Age in years - median (range)", children: [
       { key: "population_characteristics.age_in_years_median_range.overall_population", label: "Overall Population" },
       { key: "population_characteristics.age_in_years_median_range.treatment", label: "Treatment" },
@@ -201,7 +201,7 @@ export const COLUMN_SCHEMA: ColNode[] = [
       ] }
     ] }
   ] },
-  { key: "outcomes", label: "OUTCOMES", children: [
+  { key: "outcomes", label: "Outcomes", children: [
     { key: "outcomes.primary_endpoint_s", label: "Primary Endpoint(s)" },
     { key: "outcomes.secondary_endpoint_s", label: "Secondary Endpoint(s)" },
     { key: "outcomes.no_of_deaths", label: "No of Deaths", children: [

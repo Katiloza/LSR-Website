@@ -25,7 +25,7 @@ export function StatsStrip() {
             <stat.icon size={20} className="text-[#2E75B5]" strokeWidth={1.5} />
           </div>
           <div>
-            <div className="text-[26px] font-semibold text-[#2E75B5] leading-none font-['Articulat_CF',sans-serif]">
+            <div className="text-[26px] font-semibold text-[#2E75B5] leading-none font-['Inter',sans-serif]">
               {stat.value}
             </div>
             <div className="text-[12px] text-gray-500 mt-0.5 font-['Inter',sans-serif]">

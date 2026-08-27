@@ -91,7 +91,7 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
       id={data.id}
       className={cn("bg-white w-full overflow-hidden", isActive ? "" : "")}
     >
-      <h3 className="font-medium mb-4 border-b border-gray-100 pb-4 font-['Articulat_CF',sans-serif] text-[24px] text-[#000105]">
+      <h3 className="font-medium mb-4 border-b border-gray-100 pb-4 font-['Inter',sans-serif] text-[24px] text-[#000105]">
         {data.title}
       </h3>
 
@@ -122,8 +122,8 @@ export function ForestPlot({ data, isActive }: ForestPlotProps) {
                 wrapped author name would otherwise push the two out of sync. */}
             <thead>
               <tr className="border-b border-[#D0D5DC]">
-                <th className="py-2 text-[12px] font-bold text-[#101318] w-[20%] whitespace-nowrap">Study</th>
-                <th className="py-2 text-[12px] font-bold text-[#101318] w-[35%] whitespace-nowrap">Trial Name</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] w-[25%] whitespace-nowrap">Study</th>
+                <th className="py-2 text-[12px] font-bold text-[#101318] w-[30%] whitespace-nowrap">Trial Name</th>
                 <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[10%] whitespace-nowrap">HR</th>
                 <th className="py-2 text-[12px] font-bold text-[#101318] text-center w-[15%] whitespace-nowrap">95% CI</th>
                 <th className="py-2 text-[12px] font-bold text-[#101318] text-right w-[20%] whitespace-nowrap">Weight</th>

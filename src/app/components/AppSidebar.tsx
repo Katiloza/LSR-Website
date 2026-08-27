@@ -77,8 +77,9 @@ const SECTIONS: NavSection[] = [
     rowHeight: 40,
     children: [
       { label: "Primary", to: "/meta-analysis?analysis=Primary", isActive: (p, sp) => onMeta(p) && (sp.get("analysis") ?? "Primary") === "Primary" },
-      // Figma node 16:6191 — grayed out, "Coming Soon" tag, not a working route.
-      { label: "Sensitivity", comingSoon: true },
+      // Figma node 13:5771 — the subgroup sensitivity analysis is now designed
+      // and routable, so this is no longer a "Coming Soon" stub.
+      { label: "Sensitivity", to: "/meta-analysis?analysis=Sensitivity", isActive: (p, sp) => onMeta(p) && sp.get("analysis") === "Sensitivity" },
     ],
   },
   {
@@ -101,7 +102,7 @@ const SECTIONS: NavSection[] = [
     isActive: onPrisma,
     rowHeight: 40,
     children: [
-      { label: "PRISMA",           to: "/prisma?panel=flow",       isActive: (p, sp) => onPrisma(p) && (sp.get("panel") ?? "flow") === "flow" },
+      { label: "Prisma",           to: "/prisma?panel=flow",       isActive: (p, sp) => onPrisma(p) && (sp.get("panel") ?? "flow") === "flow" },
       { label: "Included Studies", to: "/prisma?panel=study-list", isActive: (p, sp) => onPrisma(p) && sp.get("panel") === "study-list" },
     ],
   },
@@ -144,7 +145,7 @@ function NestedGroupRow({ group, params, pathname, navigate }: { group: NestedGr
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex items-center gap-2 h-10 py-2 pr-2 rounded-[10px] w-full text-left text-[12px] font-medium font-['Inter',sans-serif] transition-colors",
+          "flex items-center gap-2 h-10 py-2 pr-2 rounded-[10px] w-full text-left text-[14px] leading-[15px] font-medium font-['Inter',sans-serif] transition-colors",
           active ? "text-[#2E75B5]" : "text-black hover:bg-gray-50"
         )}
         style={{ paddingLeft: 48 }}

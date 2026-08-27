@@ -47,7 +47,7 @@ export function HomePage() {
               <p className="text-[20px] font-medium leading-[18px] text-black font-['Inter',sans-serif]">
                 Living Systematic Review
               </p>
-              <h1 className="font-semibold text-[#101828] font-['Benton_Modern_D',serif] text-[64px] leading-[50px] pt-3">
+              <h1 className="font-semibold text-[#101828] font-serif text-[64px] leading-[50px] pt-3">
                 Metastatic Castration-Resistant
                 <br />
                 Prostate Cancer
@@ -84,7 +84,7 @@ export function HomePage() {
                       <stat.icon size={44} className="text-black" strokeWidth={1.5} />
                     </div>
                     <div className="flex flex-col gap-2 min-w-0">
-                      <div className="text-[32px] font-bold text-[#2E75B6] leading-[22px] font-['Articulat_CF',sans-serif] whitespace-nowrap">
+                      <div className="text-[32px] font-semibold text-[#2E75B6] leading-[22px] font-['Inter',sans-serif] whitespace-nowrap">
                         {stat.value}
                       </div>
                       <div className="text-[16px] font-medium leading-[16.5px] text-black font-['Inter',sans-serif] whitespace-nowrap">
@@ -99,7 +99,7 @@ export function HomePage() {
             {/* CTA — node 13:2316 */}
             <button
               onClick={() => navigate("/summary-of-findings")}
-              className="flex items-center justify-between gap-2 h-[43px] w-[215px] px-4 rounded-[24px] bg-[#2E75B5] border border-[#F3F4F6] text-[#F9FAFB] text-[15px] font-semibold leading-[22.5px] font-['Inter',sans-serif] hover:bg-[#25609a] transition-colors"
+              className="flex items-center justify-between gap-2 h-[43px] w-[215px] px-4 rounded-[24px] bg-[#2E75B5] border border-[#F3F4F6] text-[#F9FAFB] text-[16px] font-semibold leading-[22.5px] whitespace-nowrap font-['Inter',sans-serif] hover:bg-[#25609a] transition-colors"
             >
               Summary of Findings
               <ArrowRight size={16} className="shrink-0" />

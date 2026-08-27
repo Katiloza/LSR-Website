@@ -1,9 +1,22 @@
-import React, { useState } from "react";
-import { ArrowLeft, ChevronRight } from "lucide-react";
-import { CertaintyBadge, CertaintyLevel } from "./CertaintyBadge";
+import React, { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useCitation } from "../lib/CitationContext";
+import { CertaintyLevel } from "./CertaintyBadge";
+import { ForestPlotModal } from "./ForestPlotModal";
 import type { SoFRow } from "./GradeTable";
+
+/**
+ * Outcome Overview — Figma node 38:3984.
+ *
+ * Reads top-down as an argument: what the evidence says in plain language,
+ * then the numbers behind it, then which trials contributed, then how the
+ * GRADE certainty rating was reached.
+ *
+ * Figma annotation on node 39:5337 ("DO not use any all caps words or
+ * phrases, only capitalize the first letter") applies to every eyebrow label
+ * on this page — the design renders them in caps, the build must not.
+ */
 
 type DomainRating = "Not serious" | "Serious" | "Very serious" | "Not applicable" | "Undetected";
 
@@ -17,6 +30,12 @@ export interface DomainDetails {
   humanDecision?: string;
   algorithmNote?: string;
   humanNote?: string;
+  /** Paragraph under the domain name in the detail panel. */
+  summary?: string;
+  /** Explanation beneath the final rating. */
+  rationale?: string;
+  /** Shows the amber "Reviewer override" note on the domain card. */
+  reviewerOverride?: boolean;
 }
 
 export interface DomainAssessment {
@@ -29,6 +48,15 @@ export interface DomainAssessment {
 
 type DomainKey = keyof DomainAssessment;
 
+/** Card order follows the design, not the interface declaration order. */
+const DOMAIN_ORDER: DomainKey[] = [
+  "riskOfBias",
+  "inconsistency",
+  "indirectness",
+  "imprecision",
+  "publicationBias",
+];
+
 const DOMAIN_LABELS: Record<DomainKey, string> = {
   riskOfBias: "Risk of Bias",
   indirectness: "Indirectness",
@@ -37,318 +65,499 @@ const DOMAIN_LABELS: Record<DomainKey, string> = {
   publicationBias: "Publication Bias",
 };
 
-function ratingColor(r: DomainRating) {
-  if (r === "Not serious") return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500" };
-  if (r === "Serious") return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-500" };
-  if (r === "Very serious") return { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", dot: "bg-red-500" };
-  return { bg: "bg-gray-100", text: "text-gray-500", border: "border-gray-200", dot: "bg-gray-400" };
+const CERTAINTY_PILL: Record<CertaintyLevel, { bg: string; border: string; dot: string; ink: string }> = {
+  High:       { bg: "#ecfdf5", border: "#a7f3d0", dot: "#10b981", ink: "#065f46" },
+  Moderate:   { bg: "#fffbeb", border: "#fde68a", dot: "#f59e0b", ink: "#92400e" },
+  Low:        { bg: "#fff7ed", border: "#fed7aa", dot: "#f97316", ink: "#9a3412" },
+  "Very Low": { bg: "#fef2f2", border: "#fecaca", dot: "#ef4444", ink: "#991b1b" },
+};
+
+function ratingPill(r: DomainRating) {
+  if (r === "Not serious")  return { bg: "#ecfdf5", border: "#a7f3d0", dot: "#10b981", ink: "#065f46" };
+  if (r === "Serious")      return { bg: "#fffbeb", border: "#fde68a", dot: "#f59e0b", ink: "#92400e" };
+  if (r === "Very serious") return { bg: "#fef2f2", border: "#fecaca", dot: "#ef4444", ink: "#991b1b" };
+  return { bg: "#f9fafb", border: "#e5e7eb", dot: "#9ca3af", ink: "#4b5563" };
 }
 
-function RiskOfBiasDecisionTree() {
+/** Renders **bold** runs inside the plain-language headline. */
+function RichText({ text }: { text: string }) {
   return (
-    <svg viewBox="0 0 520 420" className="w-full h-auto" aria-label="Risk of Bias decision tree algorithm">
-      <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#9CA3AF" />
-        </marker>
-      </defs>
+    <>
+      {text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+        part.startsWith("**") && part.endsWith("**") ? (
+          <strong key={i} className="font-bold">
+            {part.slice(2, -2)}
+          </strong>
+        ) : (
+          <React.Fragment key={i}>{part}</React.Fragment>
+        )
+      )}
+    </>
+  );
+}
 
-      {/* HITL top */}
-      <polygon points="260,18 340,38 340,62 260,82 180,62 180,38" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="1.5" />
-      <text x="260" y="46" textAnchor="middle" fontSize="9" fontWeight="600" fill="#92400E">HITL: Are all studies</text>
-      <text x="260" y="58" textAnchor="middle" fontSize="9" fontWeight="600" fill="#92400E">evaluated?</text>
+/** "540 per 1,000" → 540. Only the leading figure, so the "per 1,000" suffix
+ *  and its thousands separator can't be swallowed into the number. */
+const parseRate = (s?: string) => {
+  const match = String(s ?? "").match(/\d[\d,]*(?:\.\d+)?/);
+  const n = match ? Number(match[0].replace(/,/g, "")) : 0;
+  return Number.isFinite(n) ? n : 0;
+};
 
-      {/* Yes left arrow */}
-      <line x1="220" y1="62" x2="180" y2="102" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="194" y="88" fontSize="8" fill="#6B7280">Yes</text>
+/** "−83 per 1,000" → "83 fewer per 1,000"; "+48 per 1,000" → "48 more per 1,000". */
+function riskDifferencePhrase(raw: string, per: number) {
+  const trimmed = raw.trim();
+  if (!/^[+\-−]/.test(trimmed)) return trimmed;
+  const fewer = /^[-−]/.test(trimmed);
+  const value = parseRate(trimmed);
+  const scaled = per === 100 ? Math.round(value / 10) : Math.round(value);
+  return `${scaled.toLocaleString()} ${fewer ? "fewer" : "more"} per ${per.toLocaleString()}`;
+}
 
-      {/* No right arrow */}
-      <line x1="300" y1="62" x2="380" y2="102" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="346" y="88" fontSize="8" fill="#6B7280">No</text>
-
-      {/* "Are all studies low risk?" */}
-      <rect x="90" y="102" width="160" height="36" rx="6" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5" />
-      <text x="170" y="117" textAnchor="middle" fontSize="9" fill="#1E40AF">Are all studies</text>
-      <text x="170" y="129" textAnchor="middle" fontSize="9" fill="#1E40AF">low risk?</text>
-
-      {/* "0: Not available" */}
-      <rect x="340" y="102" width="130" height="36" rx="14" fill="#F3F4F6" stroke="#D1D5DB" strokeWidth="1.5" />
-      <text x="405" y="117" textAnchor="middle" fontSize="9" fontWeight="600" fill="#6B7280">0: Not available</text>
-
-      {/* Yes right arrow from "low risk?" */}
-      <line x1="250" y1="120" x2="340" y2="162" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="300" y="148" fontSize="8" fill="#6B7280">Yes</text>
-
-      {/* "1: Not serious" (right outcome) */}
-      <rect x="340" y="162" width="130" height="30" rx="12" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5" />
-      <text x="405" y="181" textAnchor="middle" fontSize="9" fontWeight="600" fill="#065F46">1: Not serious</text>
-
-      {/* No down arrow from "low risk?" */}
-      <line x1="170" y1="138" x2="170" y2="192" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="153" y="168" fontSize="8" fill="#6B7280">No</text>
-
-      {/* "High risk or some concerns?" */}
-      <rect x="80" y="192" width="180" height="36" rx="6" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5" />
-      <text x="170" y="207" textAnchor="middle" fontSize="9" fill="#1E40AF">Are all studies high risk or</text>
-      <text x="170" y="219" textAnchor="middle" fontSize="9" fill="#1E40AF">some concerns?</text>
-
-      {/* Yes left arrow */}
-      <line x1="100" y1="216" x2="60" y2="258" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="64" y="244" fontSize="8" fill="#6B7280">Yes</text>
-
-      {/* No right arrow */}
-      <line x1="240" y1="216" x2="300" y2="258" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="264" y="244" fontSize="8" fill="#6B7280">No</text>
-
-      {/* "2: Serious" (left branch) */}
-      <rect x="20" y="258" width="84" height="28" rx="12" fill="#FEF3C7" stroke="#FDE68A" strokeWidth="1.5" />
-      <text x="62" y="275" textAnchor="middle" fontSize="9" fontWeight="600" fill="#92400E">2: Serious</text>
-
-      {/* Optional → HITL Review → Rate down → 3-4 */}
-      <line x1="62" y1="286" x2="62" y2="302" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="72" y="298" fontSize="7.5" fill="#9CA3AF">Optional</text>
-      <rect x="20" y="302" width="84" height="24" rx="10" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="1.5" />
-      <text x="62" y="317" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#92400E">HITL: Review</text>
-      <line x1="62" y1="326" x2="62" y2="342" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="72" y="338" fontSize="7.5" fill="#9CA3AF">Rate down</text>
-      <rect x="8" y="342" width="108" height="26" rx="12" fill="#FEE2E2" stroke="#FCA5A5" strokeWidth="1.5" />
-      <text x="62" y="358" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#991B1B">3–4: Very–Extremely</text>
-      <text x="62" y="369" textAnchor="middle" fontSize="8" fill="#991B1B">serious</text>
-
-      {/* Subgroup analysis */}
-      <rect x="256" y="258" width="144" height="30" rx="6" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5" />
-      <text x="328" y="270" textAnchor="middle" fontSize="8.5" fill="#1E40AF">Subgroup analysis</text>
-      <text x="328" y="281" textAnchor="middle" fontSize="8.5" fill="#1E40AF">(low vs. high/some)</text>
-
-      {/* p≤0.05 left */}
-      <line x1="290" y1="288" x2="270" y2="318" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="262" y="308" fontSize="7.5" fill="#6B7280">p≤0.05</text>
-
-      {/* p>0.05 right */}
-      <line x1="366" y1="288" x2="400" y2="318" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="370" y="308" fontSize="7.5" fill="#6B7280">p&gt;0.05</text>
-
-      {/* 3: Very serious outcome */}
-      <rect x="360" y="318" width="108" height="26" rx="12" fill="#FEE2E2" stroke="#FCA5A5" strokeWidth="1.5" />
-      <text x="414" y="334" textAnchor="middle" fontSize="9" fontWeight="600" fill="#991B1B">3: Very serious</text>
-
-      {/* Percent of high-risk studies */}
-      <rect x="210" y="318" width="120" height="26" rx="6" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5" />
-      <text x="270" y="330" textAnchor="middle" fontSize="8.5" fill="#1E40AF">Percent of high-risk</text>
-      <text x="270" y="341" textAnchor="middle" fontSize="8.5" fill="#1E40AF">studies</text>
-
-      {/* <10% */}
-      <line x1="245" y1="344" x2="222" y2="374" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="218" y="364" fontSize="7.5" fill="#6B7280">&lt;10%</text>
-
-      {/* ≥50% */}
-      <line x1="295" y1="344" x2="318" y2="374" stroke="#9CA3AF" strokeWidth="1" markerEnd="url(#arrowhead)" />
-      <text x="296" y="364" fontSize="7.5" fill="#6B7280">≥50%</text>
-
-      {/* 1: Not serious (small) */}
-      <rect x="176" y="374" width="90" height="24" rx="10" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5" />
-      <text x="221" y="389" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#065F46">1: Not serious</text>
-
-      {/* 2: Serious (small) */}
-      <rect x="288" y="374" width="72" height="24" rx="10" fill="#FEF3C7" stroke="#FDE68A" strokeWidth="1.5" />
-      <text x="324" y="389" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#92400E">2: Serious</text>
-    </svg>
+/** Eyebrow label — sentence case per the Figma content annotation on 39:5337. */
+function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p
+      className={cn(
+        "font-['Inter',sans-serif] text-[13px] font-semibold tracking-[0.4px] text-[#6b7280]",
+        className
+      )}
+    >
+      {children}
+    </p>
   );
 }
 
 interface OutcomeDetailViewProps {
   row: SoFRow;
   onBack: () => void;
+  /** Every outcome on the parent page — backs the "Explore other outcomes" menu. */
+  siblings?: SoFRow[];
+  onSelectSibling?: (row: SoFRow) => void;
 }
 
-export function OutcomeDetailView({ row, onBack }: OutcomeDetailViewProps) {
+export function OutcomeDetailView({ row, onBack, siblings = [], onSelectSibling }: OutcomeDetailViewProps) {
   const domains = row.domains;
   const [focusedDomain, setFocusedDomain] = useState<DomainKey>("riskOfBias");
+  const [per, setPer] = useState<100 | 1000>(1000);
+  const [showCI, setShowCI] = useState(true);
+  const [showRiskDifference, setShowRiskDifference] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [forestOpen, setForestOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { openTrialList } = useCitation();
+
   const includedTrials = row.includedTrialNames ?? [];
+
+  useEffect(() => {
+    setFocusedDomain("riskOfBias");
+    setMenuOpen(false);
+  }, [row.id]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   if (!domains) return null;
 
+  const pill = CERTAINTY_PILL[row.certainty];
   const focusedEntry = domains[focusedDomain];
   const focusedDetails = focusedEntry.details;
 
+  const scale = (v: number) => (per === 100 ? Math.round(v / 10) : Math.round(v));
+  const interventionRate = parseRate(row.absoluteIntervention);
+  const controlRate = parseRate(row.absoluteControl);
+  const maxRate = Math.max(interventionRate, controlRate, 1);
+  const unit = row.absoluteUnit ?? `events per ${per.toLocaleString()}`;
+  const absoluteHeading =
+    row.absoluteUnit && per === 100
+      ? row.absoluteUnit.replace(/1,000/g, "100")
+      : unit;
+
+  const detailRows = focusedDetails
+    ? ([
+        ["All studies evaluated", focusedDetails.allEvaluated],
+        ["All low risk", focusedDetails.allLowRisk],
+        ["High risk / some concerns", focusedDetails.highRiskSomeConcerns],
+        ["Subgroup analysis p-value", focusedDetails.subgroupPValue],
+        ["% of high-risk studies", focusedDetails.percentHighRisk],
+      ] as const).filter(([, v]) => v !== undefined)
+    : [];
+
+  // The design writes this copy by hand for Overall survival (Figma 39:5305 /
+  // 39:5307). Every other outcome falls back to a sentence built from its own
+  // numbers rather than an invented clinical claim.
+  const plainSummary =
+    row.plainSummary ??
+    `The pooled estimate is **${row.relativeEffect}** — about **${riskDifferencePhrase(
+      row.riskDifference,
+      per
+    )} people**.`;
+  const plainCaption =
+    row.plainCaption ??
+    `${row.certainty} certainty across ${row.studyCount} randomized trials and ${row.participantCount.toLocaleString()} participants.`;
+
+  const bars = [
+    { label: "Intervention", value: interventionRate, color: "#2e75b5" },
+    { label: "Control", value: controlRate, color: "#94a3b8" },
+  ];
+
   return (
-    <div className="flex flex-col gap-8 p-8 font-['Inter',sans-serif]">
-      {/* Back */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-[#2E75B5] text-[13px] font-medium hover:underline w-fit"
+    <div className="flex min-w-0 flex-1 flex-col font-['Inter',sans-serif]">
+      {/* Header — Figma node 39:5285 */}
+      <div
+        className="flex flex-col items-start border-b border-[#f3f4f6] px-10 pt-[26px] pb-8"
+        style={{
+          backgroundImage:
+            "linear-gradient(174.96deg, rgba(133,200,250,0.27) 8.4861%, rgba(133,200,250,0) 66.606%)",
+        }}
       >
-        <ArrowLeft size={14} />
-        Go Back
-      </button>
+        <div className="flex w-full items-center justify-between gap-4">
+          <button
+            onClick={onBack}
+            className="text-[15px] font-semibold text-[#2e75b5] transition-colors hover:text-[#1b3a63]"
+          >
+            ← Back to Summary of Findings
+          </button>
 
-      {/* Title */}
-      <div className="flex items-baseline gap-3">
-        <h2 className="text-[32px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight">
-          {row.outcome}
-        </h2>
-        <span className="text-[14px] text-gray-400 font-['Inter',sans-serif]">
-          {row.studyCount} references
-        </span>
-      </div>
+          {/* Figma 39:5293 — navigate between the other outcomes. */}
+          {siblings.length > 1 && onSelectSibling && (
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px] font-medium text-[#6b7280]">Explore other outcomes:</span>
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-haspopup="listbox"
+                  aria-expanded={menuOpen}
+                  className="flex h-9 items-center gap-2.5 rounded-full border border-[#bfdbfe] bg-white px-3.5 text-[14px] font-semibold text-[#101828] transition-colors hover:bg-[#f3f8fe]"
+                >
+                  {row.outcome}
+                  <ChevronDown size={13} className={cn("transition-transform", menuOpen && "rotate-180")} />
+                </button>
 
-      {/* Overview */}
-      <section>
-        <h3 className="text-[20px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">Overview</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="border border-gray-100 rounded-xl p-4 bg-white">
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Summary Effect</p>
-            <p className="text-[20px] font-bold text-gray-900">{row.relativeEffect}</p>
-            <p className="text-[12px] text-gray-500">95% CI: {row.relativeEffectCI.replace(/[()]/g, "")}</p>
-          </div>
-          <div className="border border-gray-100 rounded-xl p-4 bg-white">
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Heterogeneity</p>
-            <p className="text-[20px] font-bold text-gray-900">
-              I² {row.heterogeneity?.i2 ?? "—"}
-            </p>
-            <p className="text-[12px] text-gray-500">
-              τ² = {row.heterogeneity?.tau2 ?? "—"} · p {row.heterogeneity?.p ?? "—"}
-            </p>
-          </div>
-          {/* Studies-included card — the list itself stays hidden; clicking
-              the card opens the reference-style popup of included studies,
-              each linking out to the published record. */}
-          {includedTrials.length > 0 ? (
-            <button
-              onClick={() => openTrialList(`${row.outcome} — included studies`, includedTrials)}
-              className="border border-gray-100 rounded-xl p-4 bg-white text-left transition-colors hover:border-[#2E75B5] hover:bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40 group"
-            >
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Studies Included</p>
-              <p className="text-[20px] font-bold text-gray-900 group-hover:text-[#2E75B5] transition-colors">
-                {row.studyCount} studies
-              </p>
-              <p className="text-[12px] text-[#2E75B5] flex items-center gap-1">
-                View study list <ChevronRight size={12} className="shrink-0" />
-              </p>
-            </button>
-          ) : (
-            <div className="border border-gray-100 rounded-xl p-4 bg-white">
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Studies Included</p>
-              <p className="text-[20px] font-bold text-gray-900">{row.studyCount} studies</p>
-              <p className="text-[12px] text-gray-500">Random-effect model ready</p>
+                {menuOpen && (
+                  <ul
+                    role="listbox"
+                    className="absolute right-0 z-30 mt-2 max-h-[320px] w-[300px] overflow-y-auto rounded-xl border border-[#e5e7eb] bg-white py-1.5 shadow-lg"
+                  >
+                    {siblings.map((sibling) => (
+                      <li key={sibling.id}>
+                        <button
+                          role="option"
+                          aria-selected={sibling.id === row.id}
+                          onClick={() => {
+                            setMenuOpen(false);
+                            onSelectSibling(sibling);
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left text-[14px] transition-colors hover:bg-[#f3f8fe]",
+                            sibling.id === row.id
+                              ? "font-semibold text-[#2e75b5]"
+                              : "font-medium text-[#374151]"
+                          )}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{sibling.outcome}</span>
+                          <span
+                            className="size-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: CERTAINTY_PILL[sibling.certainty].dot }}
+                            aria-hidden
+                          />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           )}
         </div>
-      </section>
 
-      {/* Domain Assessment */}
-      <section>
-        <h3 className="text-[20px] font-semibold text-[#2E75B5] font-['Articulat_CF',sans-serif] mb-3">Domain Assessment</h3>
-        <div className="grid grid-cols-5 gap-3 mb-6">
-          {(Object.keys(DOMAIN_LABELS) as DomainKey[]).map((key) => {
-            const entry = domains[key];
-            const colors = ratingColor(entry.rating);
-            const isActive = focusedDomain === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setFocusedDomain(key)}
-                className={cn(
-                  "flex flex-col gap-2 p-3 rounded-xl border-2 text-left transition-all",
-                  isActive ? "border-[#2E75B5] bg-blue-50/40" : "border-gray-100 bg-white hover:border-gray-200"
-                )}
-              >
-                <p className="text-[11px] text-gray-500 font-medium">{DOMAIN_LABELS[key]}:</p>
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border w-fit",
-                  colors.bg, colors.text, colors.border
-                )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", colors.dot)} aria-hidden />
-                  {entry.rating}
-                </span>
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-4 pt-[18px]">
+          <h1 className="font-serif text-[40px] leading-[44px] font-semibold text-[#101828]">
+            {row.outcome}
+          </h1>
+          <span
+            className="flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+            style={{ backgroundColor: pill.bg, borderColor: pill.border, color: pill.ink }}
+          >
+            <span className="size-1.5 rounded-full" style={{ backgroundColor: pill.dot }} aria-hidden />
+            {row.certainty}
+          </span>
         </div>
 
-        {/* COE Focus + Decision Tree */}
-        <div className="grid grid-cols-[280px_1fr] gap-4">
-          {/* COE Focus panel */}
-          <div className="border border-gray-100 rounded-xl p-4 bg-white flex flex-col gap-3">
-            <div>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">COE Focus</p>
-              <p className="text-[15px] font-semibold text-gray-900 mt-0.5">{DOMAIN_LABELS[focusedDomain]}</p>
-            </div>
+        <p className="max-w-[860px] pt-4 text-[22px] leading-[32px] text-[#101828]">
+          <RichText text={plainSummary} />
+        </p>
+        <p className="max-w-[860px] pt-2.5 text-[15px] leading-[24px] text-[#4b5563]">
+          {plainCaption}
+        </p>
+      </div>
 
-            {focusedDetails ? (
-              <div className="flex flex-col gap-1.5">
-                {focusedDetails.allEvaluated !== undefined && (
-                  <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">All evaluated</span>
-                    <span className="font-semibold text-gray-900">{focusedDetails.allEvaluated}</span>
-                  </div>
-                )}
-                {focusedDetails.allLowRisk !== undefined && (
-                  <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">All Low risk</span>
-                    <span className="font-semibold text-gray-900">{focusedDetails.allLowRisk}</span>
-                  </div>
-                )}
-                {focusedDetails.highRiskSomeConcerns !== undefined && (
-                  <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">High risk / some concerns</span>
-                    <span className="font-semibold text-gray-900">{focusedDetails.highRiskSomeConcerns}</span>
-                  </div>
-                )}
-                {focusedDetails.subgroupPValue !== undefined && (
-                  <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">Subgroup Analysis p-value</span>
-                    <span className="font-semibold text-gray-900">{focusedDetails.subgroupPValue}</span>
-                  </div>
-                )}
-                {focusedDetails.percentHighRisk !== undefined && (
-                  <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">% of High-risk studies</span>
-                    <span className="font-semibold text-gray-900">{focusedDetails.percentHighRisk}</span>
-                  </div>
-                )}
+      {/* Readout controls — Figma node 39:5308 */}
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-[#f3f4f6] bg-[#fafafa] px-10 py-3.5">
+        <Eyebrow className="pr-1">Risk per</Eyebrow>
+        {([1000, 100] as const).map((option) => (
+          <button
+            key={option}
+            onClick={() => setPer(option)}
+            aria-pressed={per === option}
+            className={cn(
+              "h-[30px] rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+              per === option
+                ? "border-[#2e75b5] bg-[#2e75b5] text-white"
+                : "border-[#e5e7eb] bg-white text-[#6b7280] hover:bg-gray-50"
+            )}
+          >
+            {option.toLocaleString()}
+          </button>
+        ))}
 
-                {(focusedDetails.algorithmDecision || focusedDetails.humanDecision) && (
-                  <div className="mt-2 rounded-lg bg-green-50 border border-green-100 p-2.5 flex flex-col gap-1.5">
-                    {focusedDetails.algorithmDecision && (
-                      <div>
-                        <p className="text-[11px] font-semibold text-green-800">Algorithm Decision: {focusedDetails.algorithmDecision}</p>
-                        {focusedDetails.algorithmNote && (
-                          <p className="text-[11px] text-green-700">{focusedDetails.algorithmNote}</p>
-                        )}
-                      </div>
-                    )}
-                    {focusedDetails.humanDecision && (
-                      <div>
-                        <p className="text-[11px] font-semibold text-green-800">Human Decision: {focusedDetails.humanDecision}</p>
-                        {focusedDetails.humanNote && (
-                          <p className="text-[11px] text-green-700">{focusedDetails.humanNote}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+        <span className="mx-2 h-[22px] w-px bg-[#e5e7eb]" aria-hidden />
+
+        {[
+          { label: "95% CI", on: showCI, toggle: () => setShowCI((v) => !v) },
+          { label: "Risk difference", on: showRiskDifference, toggle: () => setShowRiskDifference((v) => !v) },
+        ].map((item) => (
+          <button
+            key={item.label}
+            onClick={item.toggle}
+            aria-pressed={item.on}
+            className={cn(
+              "flex h-[30px] items-center gap-2 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+              item.on
+                ? "border-[#bfdbfe] bg-[#e4f0fe] text-[#0663ad]"
+                : "border-[#e5e7eb] bg-white text-[#6b7280] hover:bg-gray-50"
+            )}
+          >
+            <span
+              className="size-[7px] rounded-full"
+              style={{ backgroundColor: item.on ? "#2e75b5" : "#d1d5db" }}
+              aria-hidden
+            />
+            {item.label}
+          </button>
+        ))}
+
+        {["Raw event data", "Survival data"].map((label) => (
+          <button
+            key={label}
+            disabled
+            title="Not available for this outcome"
+            className="flex h-[30px] cursor-not-allowed items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-3.5 text-[13px] font-semibold text-[#6b7280]"
+          >
+            <span className="size-[7px] rounded-full bg-[#d1d5db]" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Effect estimates — Figma node 39:5333 */}
+      <div className="flex flex-col gap-7 px-10 pt-8 pb-14">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[280px_minmax(0,1fr)]">
+          {/* Relative effect — Figma node 39:5335 */}
+          <div className="flex flex-col rounded-xl border border-[#e5e7eb] bg-white p-5 drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
+            <Eyebrow>Relative effect</Eyebrow>
+            <p className="pt-2.5 text-[34px] leading-[34px] font-bold text-[#101828]">
+              {row.relativeEffect}
+            </p>
+            {showCI && (
+              <p className="pt-2 text-[16px] font-medium text-[#4b5563]">
+                95% CI {row.relativeEffectCI.replace(/[()]/g, "").replace(/–/g, " to ")}
+              </p>
+            )}
+            {row.heterogeneity && (
+              <div className="mt-4 border-t border-[#f9fafb] pt-3.5">
+                <p className="text-[14px] leading-[20px] font-medium text-[#6b7280]">
+                  I² {row.heterogeneity.i2}% · τ² {row.heterogeneity.tau2} · p {row.heterogeneity.p}
+                </p>
               </div>
-            ) : (
-              <p className="text-[12px] text-gray-400 italic">No detailed assessment available for this domain.</p>
             )}
           </div>
 
-          {/* Decision Tree */}
-          <div className="border border-gray-100 rounded-xl p-4 bg-white">
-            <p className="text-[12px] font-semibold text-gray-700 mb-0.5">
-              Decision Tree — {DOMAIN_LABELS[focusedDomain]} algorithm
-            </p>
-            <p className="text-[11px] text-gray-400 mb-4">
-              {focusedDomain === "riskOfBias"
-                ? "Flow: HITL review → are all studies evaluated? → are all studies low risk? → algorithm output"
-                : `Algorithmic assessment for ${DOMAIN_LABELS[focusedDomain].toLowerCase()}.`}
-            </p>
-            <RiskOfBiasDecisionTree />
+          {/* Absolute effect — Figma node 39:5345 */}
+          <div className="flex flex-col rounded-xl border border-[#e5e7eb] bg-white px-6 py-5 drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <Eyebrow>Absolute effect — {absoluteHeading}</Eyebrow>
+              {/* Figma 39:5349 — opens a popup with the associated forest plot. */}
+              <button
+                onClick={() => setForestOpen(true)}
+                className="shrink-0 text-[13px] font-semibold text-[#2e75b5] transition-colors hover:text-[#1b3a63]"
+              >
+                Forest plot →
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3.5 pt-[18px]">
+              {bars.map((bar) => (
+                <div key={bar.label} className="grid grid-cols-[110px_minmax(0,1fr)_130px] items-center gap-4">
+                  <span className="text-[14px] font-semibold text-[#374151]">{bar.label}</span>
+                  <div className="h-6 overflow-hidden rounded bg-[#f9fafb]">
+                    <div
+                      className="h-6 rounded transition-[width] duration-300"
+                      style={{ width: `${(bar.value / maxRate) * 100}%`, backgroundColor: bar.color }}
+                    />
+                  </div>
+                  <span className="text-right text-[17px] font-bold tabular-nums text-[#101828]">
+                    {scale(bar.value).toLocaleString()} per {per.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {showRiskDifference && (
+              <div className="mt-[18px] flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-[#f9fafb] pt-4">
+                <Eyebrow>Risk difference</Eyebrow>
+                <span
+                  className="text-[20px] font-bold"
+                  style={{ color: row.direction === "harm" ? "#991b1b" : "#065f46" }}
+                >
+                  {riskDifferencePhrase(row.riskDifference, per)}
+                </span>
+                {row.riskDifferenceCI && (
+                  <span className="text-[14px] font-medium text-[#6b7280]">{row.riskDifferenceCI}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      </section>
+
+        {/* Contributing studies — Figma node 39:5370 */}
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-[#f3f8fe] px-5 py-4">
+          <div className="flex flex-wrap items-center gap-3.5">
+            <Eyebrow>Contributing studies</Eyebrow>
+            <span className="text-[17px] font-bold text-[#101828]">
+              {row.studyCount} trials · {row.participantCount.toLocaleString()} participants
+            </span>
+            {includedTrials.slice(0, 4).map((trial) => (
+              <span
+                key={trial}
+                className="flex h-7 items-center rounded-full border border-[#bfdbfe] bg-white px-[11px] text-[13px] font-semibold text-[#2e75b5]"
+              >
+                {trial}
+              </span>
+            ))}
+          </div>
+
+          {/* Figma 39:5389 — opens a popup listing the studies. */}
+          {includedTrials.length > 0 && (
+            <button
+              onClick={() => openTrialList(`${row.outcome} — included studies`, includedTrials)}
+              className="shrink-0 text-[14px] font-semibold text-[#2e75b5] transition-colors hover:text-[#1b3a63]"
+            >
+              View all {includedTrials.length} citations →
+            </button>
+          )}
+        </div>
+
+        {/* Certainty — Figma node 39:5390 */}
+        <div className="flex flex-col gap-3.5">
+          <div className="flex flex-wrap items-baseline gap-4">
+            <h2 className="font-serif text-[26px] font-semibold text-[#101828]">
+              How the certainty was reached
+            </h2>
+            <p className="text-[14px] font-medium text-[#6b7280]">
+              Select a GRADE domain to see the evidence behind its judgement.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            {DOMAIN_ORDER.map((key) => {
+              const entry = domains[key];
+              const colors = ratingPill(entry.rating);
+              const isActive = focusedDomain === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setFocusedDomain(key)}
+                  aria-pressed={isActive}
+                  className={cn(
+                    "flex flex-col items-start gap-2.5 rounded-xl border px-4 py-3.5 text-left transition-all",
+                    isActive
+                      ? "border-[#2e75b5] bg-[#f3f8fe] drop-shadow-[0px_1px_1px_rgba(46,117,181,0.18)]"
+                      : "border-[#e5e7eb] bg-white drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)] hover:border-[#bfdbfe]"
+                  )}
+                >
+                  <span className="text-[14px] font-semibold text-[#374151]">{DOMAIN_LABELS[key]}</span>
+                  <span
+                    className="flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-semibold"
+                    style={{ backgroundColor: colors.bg, borderColor: colors.border, color: colors.ink }}
+                  >
+                    <span className="size-1.5 rounded-full" style={{ backgroundColor: colors.dot }} aria-hidden />
+                    {entry.rating}
+                  </span>
+                  <span className="min-h-[14.5px] text-[12px] font-semibold text-[#92400e]">
+                    {entry.details?.reviewerOverride ? "Reviewer override" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Domain detail + judgement — Figma node 39:5430 */}
+          <div className="overflow-hidden rounded-xl border border-[#bfdbfe] bg-[#f3f8fe]">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+              <div className="flex flex-col border-b border-[#dbeafe] px-6 py-[22px] lg:border-b-0 lg:border-r">
+                <p className="text-[12px] font-bold tracking-[0.5px] text-[#2e75b5]">Domain detail</p>
+                <p className="pt-1.5 text-[20px] font-semibold text-[#101828]">
+                  {DOMAIN_LABELS[focusedDomain]}
+                </p>
+                <p className="max-w-[560px] pt-2 text-[14px] leading-[22px] text-[#4b5563]">
+                  {focusedDetails?.summary ??
+                    focusedDetails?.algorithmNote ??
+                    `No structured assessment was recorded for ${DOMAIN_LABELS[focusedDomain].toLowerCase()} on this outcome.`}
+                </p>
+
+                {detailRows.length > 0 && (
+                  <div className="mt-4 border-t border-[#dbeafe]">
+                    {detailRows.map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between border-b border-[#dbeafe] py-2.5"
+                      >
+                        <span className="text-[14px] text-[#4b5563]">{label}</span>
+                        <span className="text-[14px] font-bold text-[#101828]">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3.5 px-6 py-[22px]">
+                <p className="text-[12px] font-bold tracking-[0.5px] text-[#2e75b5]">Judgement</p>
+                <div className="rounded-[10px] border border-[#dbeafe] bg-white px-[18px] py-4">
+                  <Eyebrow>Final rating</Eyebrow>
+                  <p className="pt-2 text-[22px] font-bold text-[#101828]">{focusedEntry.rating}</p>
+                  <p className="pt-2 text-[14px] leading-[22px] text-[#4b5563]">
+                    {focusedDetails?.rationale ??
+                      focusedDetails?.humanNote ??
+                      focusedDetails?.algorithmNote ??
+                      (focusedEntry.rating === "Not serious"
+                        ? "No downgrade was applied for this domain."
+                        : `Certainty was rated down for ${DOMAIN_LABELS[focusedDomain].toLowerCase()}.`)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ForestPlotModal
+        open={forestOpen}
+        onClose={() => setForestOpen(false)}
+        title={row.outcome}
+        dataId={row.forestDataId ?? row.id}
+      />
     </div>
   );
 }

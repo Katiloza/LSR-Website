@@ -15,16 +15,16 @@ interface SearchItem {
 
 const ALL_ITEMS: SearchItem[] = [
   // PRISMA
-  { id: "prisma-current",   label: "Current State",    sublabel: "PRISMA flowchart — living review",         category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state" },
-  { id: "prisma-initial",   label: "Initial Search",   sublabel: "PRISMA flowchart — inception search",      category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=initial-search" },
-  { id: "prisma-living",    label: "Living Search",    sublabel: "Monthly automated search heatmap",         category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=living-search" },
-  { id: "prisma-propel",    label: "PROpel",           sublabel: "Olaparib + Abiraterone — included study",  category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "PROpel" },
-  { id: "prisma-talapro",   label: "TALAPRO-2",        sublabel: "Talazoparib + Enzalutamide",               category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "TALAPRO-2" },
-  { id: "prisma-magnitude", label: "MAGNITUDE",        sublabel: "Niraparib + Abiraterone",                  category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "MAGNITUDE" },
-  { id: "prisma-vision",    label: "VISION",           sublabel: "177Lu-PSMA-617 + SoC",                     category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "VISION" },
-  { id: "prisma-card",      label: "CARD",             sublabel: "Cabazitaxel vs Abiraterone/Enzalutamide",  category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "CARD" },
-  { id: "prisma-profound",  label: "PROfound",         sublabel: "Olaparib vs Enzalutamide/Abiraterone",     category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "PROfound" },
-  { id: "prisma-triton3",   label: "TRITON3",          sublabel: "Rucaparib — BRCA1/2 mCRPC",               category: "PRISMA",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "TRITON3" },
+  { id: "prisma-current",   label: "Current State",    sublabel: "PRISMA flowchart — living review",         category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state" },
+  { id: "prisma-initial",   label: "Initial Search",   sublabel: "PRISMA flowchart — inception search",      category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=initial-search" },
+  { id: "prisma-living",    label: "Living Search",    sublabel: "Monthly automated search heatmap",         category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=living-search" },
+  { id: "prisma-propel",    label: "PROpel",           sublabel: "Olaparib + Abiraterone — included study",  category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "PROpel" },
+  { id: "prisma-talapro",   label: "TALAPRO-2",        sublabel: "Talazoparib + Enzalutamide",               category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "TALAPRO-2" },
+  { id: "prisma-magnitude", label: "MAGNITUDE",        sublabel: "Niraparib + Abiraterone",                  category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "MAGNITUDE" },
+  { id: "prisma-vision",    label: "VISION",           sublabel: "177Lu-PSMA-617 + SoC",                     category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "VISION" },
+  { id: "prisma-card",      label: "CARD",             sublabel: "Cabazitaxel vs Abiraterone/Enzalutamide",  category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "CARD" },
+  { id: "prisma-profound",  label: "PROfound",         sublabel: "Olaparib vs Enzalutamide/Abiraterone",     category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "PROfound" },
+  { id: "prisma-triton3",   label: "TRITON3",          sublabel: "Rucaparib — BRCA1/2 mCRPC",               category: "Prisma",            categoryIcon: GitBranch, to: "/prisma?view=current-state", highlightId: "TRITON3" },
 
   // Summary Tables
   { id: "st-parpi",         label: "PARPi",            sublabel: "Treatment class — 5 trials",               category: "Summary Tables",    categoryIcon: Table,     to: "/summary-tables?tab=interactive-table", highlightId: "PARPi" },
@@ -57,7 +57,7 @@ const ALL_ITEMS: SearchItem[] = [
   { id: "sof-low",     label: "Low Certainty",             sublabel: "GRADE outcomes — G5 AEs",            category: "Summary of Findings", categoryIcon: Layers, to: "/summary-of-findings?analysis=primary",     highlightId: "ae-g5" },
 ];
 
-const CATEGORY_ORDER = ["PRISMA", "Summary Tables", "Meta-Analysis", "Summary of Findings"];
+const CATEGORY_ORDER = ["Prisma", "Summary Tables", "Meta-Analysis", "Summary of Findings"];
 
 function scoreItem(item: SearchItem, q: string): number {
   const lq = q.toLowerCase();
@@ -148,11 +148,28 @@ export function GlobalSearch({
     navigate(path + (paramStr ? `?${paramStr}` : ""));
   };
 
+  // Submits the raw query to the full Search Results page (Figma node 24:622).
+  // Only fires when nothing in the quick-jump dropdown is highlighted, so
+  // arrow-key selection of a specific section/study still wins on Enter.
+  const goToResultsPage = () => {
+    if (!query.trim()) return;
+    setOpen(false);
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  };
+
   const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && activeIdx >= 0 && flatResults.length > 0) {
+        goTo(flatResults[activeIdx]);
+      } else {
+        goToResultsPage();
+      }
+      return;
+    }
     if (!open || flatResults.length === 0) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, flatResults.length - 1)); }
     if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
-    if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); goTo(flatResults[activeIdx]); }
     if (e.key === "Escape") { setOpen(false); }
   };
 
@@ -181,7 +198,7 @@ export function GlobalSearch({
                 <div key={group.category}>
                   <div className="flex items-center gap-2 px-4 pt-4 pb-2">
                     <GroupIcon size={13} className="text-gray-400" />
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest font-['Articulat_CF',sans-serif]">
+                    <span className="text-[14px] font-semibold text-gray-400 font-['Inter',sans-serif]">
                       {group.category}
                     </span>
                   </div>
