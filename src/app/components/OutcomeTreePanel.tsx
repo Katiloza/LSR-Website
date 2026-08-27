@@ -126,6 +126,16 @@ export function OutcomeTreePanel({
     );
   }
 
+  // All collapsible node ids (groups + sub-groups) — used to tell "collapsed some"
+  // apart from "collapsed all", so the toggle only lights up at the true extremes.
+  const allIds: string[] = [];
+  groups.forEach((g) => {
+    allIds.push(g.id);
+    g.subGroups?.forEach((s) => allIds.push(s.id));
+  });
+  const isFullyCollapsed = allIds.length > 0 && allIds.every((id) => collapsed.has(id));
+  const isFullyExpanded = collapsed.size === 0;
+
   return (
     <div className="flex w-[217px] shrink-0 flex-col gap-2 pt-5">
       {/* Header — Figma node 35:1600 */}
@@ -154,7 +164,7 @@ export function OutcomeTreePanel({
             onClick={onCollapseAll}
             className={cn(
               "flex flex-1 items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold transition-colors font-['Inter',sans-serif]",
-              collapsed.size === 0
+              isFullyCollapsed
                 ? "bg-white text-[#101828] drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
                 : "text-[#f9fafb] hover:bg-white/10"
             )}
@@ -166,7 +176,7 @@ export function OutcomeTreePanel({
             onClick={onExpandAll}
             className={cn(
               "flex flex-1 items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold transition-colors font-['Inter',sans-serif]",
-              collapsed.size > 0
+              isFullyExpanded
                 ? "bg-white text-[#101828] drop-shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
                 : "text-[#f9fafb] hover:bg-white/10"
             )}

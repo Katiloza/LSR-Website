@@ -198,7 +198,8 @@ export function MetaAnalysis() {
   const groups = analysisType === "Sensitivity" ? SENSITIVITY_GROUPS : PRIMARY_GROUPS;
   const leaves = useMemo(() => flatten(groups), [groups]);
 
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Tree starts fully collapsed so the rail reads as a compact outline.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(allNodeIds(groups)));
   const [panelOpen, setPanelOpen] = useState(true);
 
   const selectedId = searchParams.get("outcome") ?? leaves[0].leaf.id;
@@ -212,9 +213,9 @@ export function MetaAnalysis() {
       return next;
     });
 
-  // Switching Primary ↔ Sensitivity resets the tree state and the scroll position.
+  // Switching Primary ↔ Sensitivity resets the tree to fully collapsed and scrolls to top.
   useEffect(() => {
-    setCollapsed(new Set());
+    setCollapsed(new Set(allNodeIds(groups)));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [analysisType]);
 
