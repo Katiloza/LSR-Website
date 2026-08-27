@@ -46,7 +46,7 @@ const LABEL_W = 132;   // left rail carrying the section anchor label
 const RAIL_X = 58;     // x of the vertical spine, measured from the flow column
 const CARD_X = 100;    // x of every stacked card's left edge
 const CARD_W = 224;    // width of every stacked flow / branch card
-const INCLUDED_W = 268; // Included cards sit in a row; sized for the 40px count
+const INCLUDED_W = 271; // Included cards sit in a row; sized for the 40px count
 const ID_W = 257;      // Identification source cards
 const ID_GAP = 20;
 const BLOCK_W = 820;
@@ -267,10 +267,10 @@ export function PrismaFlowchart({ stages, onNodeClick, activeNodeId }: PrismaFlo
   return (
     <div className="w-full" style={{ maxWidth: LABEL_W + BLOCK_W }}>
       {/* ── Included — the headline result, always visible ── */}
-      <h2 className="mb-4 text-[32px] leading-[19.5px] font-medium text-[#2E75B5] font-['Inter',sans-serif]">
-        Included studies
+      <h2 className="mb-8 text-[32px] leading-[19.5px] font-medium text-[#2E75B5] font-['Inter',sans-serif]">
+        Included Studies
       </h2>
-      <div className="flex" style={{ gap: 16 }}>
+      <div className="flex" style={{ gap: 20 }}>
         {included.map((stage) => (
           <div key={stage.id} style={{ width: INCLUDED_W }}>
             <StageNode stage={stage} isActive={activeNodeId === stage.id} onClick={() => onNodeClick(stage)} />
