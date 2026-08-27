@@ -33,7 +33,7 @@ export function SectionCard({ icon: Icon, title, description, to, accent = "#2E7
         />
       </div>
       <div>
-        <h3 className="text-[15px] font-semibold text-gray-900 font-['Articulat_CF',sans-serif] mb-1">
+        <h3 className="text-[15px] font-semibold text-gray-900 font-['Inter',sans-serif] mb-1">
           {title}
         </h3>
         <p className="text-[13px] text-gray-500 font-['Inter',sans-serif] leading-relaxed">

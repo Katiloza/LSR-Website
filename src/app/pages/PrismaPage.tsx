@@ -136,10 +136,22 @@ export function PrismaPage() {
               className="px-8 pt-6 pb-5"
               style={{ background: "linear-gradient(177.97deg, rgba(133,200,250,0.15) 8.49%, rgba(133,200,250,0) 58.3%)" }}
             >
-              <h1 className="text-[32px] font-semibold text-[#101828] font-['Benton_Modern_D',serif] leading-tight mb-1">
-                {activePanel === "study-list" ? "Study List" : "Study selection"}
+              <h1
+                className={cn(
+                  "text-[40px] font-semibold text-[#101828] font-serif mb-1",
+                  activePanel === "study-list" ? "leading-[40px]" : "leading-[50px]"
+                )}
+              >
+                {activePanel === "study-list" ? "Study list" : "Study selection"}
               </h1>
-              <p className="text-[14px] text-[#4a5565] font-['Inter',sans-serif] leading-relaxed max-w-3xl line-clamp-2">
+              <p
+                className={cn(
+                  "text-[16px] font-['Inter',sans-serif] max-w-3xl line-clamp-2",
+                  activePanel === "study-list"
+                    ? "leading-[22.75px] text-[#4a5565]"
+                    : "leading-[22.5px] text-black"
+                )}
+              >
                 {activePanel === "study-list"
                   ? "Every trial included in this living systematic review."
                   : activeView === "living-search"
@@ -160,10 +172,10 @@ export function PrismaPage() {
                         key={opt.id}
                         onClick={() => setView(opt.id)}
                         className={cn(
-                          "px-4 py-2.5 text-[13px] font-medium transition-all border-b-2 -mb-px font-['Articulat_CF',sans-serif]",
+                          "px-4 py-2.5 text-[16px] leading-[19.5px] font-medium transition-all border-b-2 -mb-px font-['Inter',sans-serif]",
                           activeView === opt.id
                             ? "border-[#2E75B5] text-[#2E75B5]"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            : "border-transparent text-[#6A7282] hover:text-[#101828]"
                         )}
                       >
                         {opt.label}

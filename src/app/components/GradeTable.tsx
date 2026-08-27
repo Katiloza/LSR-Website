@@ -22,6 +22,18 @@ export interface SoFRow {
   domains?: DomainAssessment;
   /** Trial names contributing to this outcome — backs the Overview page's citation links. */
   includedTrialNames?: string[];
+
+  // ─── Overview page copy — Figma node 38:3984 ───────────────────────────────
+  /** Plain-language headline. Text between ** ** renders bold. */
+  plainSummary?: string;
+  /** Supporting line under the headline. */
+  plainCaption?: string;
+  /** Unit phrase for the absolute-effect card, e.g. "deaths per 1,000 at 36 months". */
+  absoluteUnit?: string;
+  /** Confidence interval for the risk difference, e.g. "95% CI 110 fewer to 47 fewer". */
+  riskDifferenceCI?: string;
+  /** MOCK_FOREST_DATA key backing the "Forest plot" popup. */
+  forestDataId?: string;
 }
 
 const RISK_PER_OPTIONS = [
@@ -113,32 +125,32 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
           </caption>
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
-              <th scope="col" className="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] min-w-[200px]">
+              <th scope="col" className="text-left px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px] min-w-[200px]">
                 Outcome
               </th>
-              <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] whitespace-nowrap">
+              <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px] whitespace-nowrap">
                 Participants
               </th>
-              <th scope="col" className="text-center px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] whitespace-nowrap">
+              <th scope="col" className="text-center px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px] whitespace-nowrap">
                 Relative effect{showCiRow ? " (95% CI)" : ""}
-                <span className="block normal-case font-normal text-gray-400 text-[9px] tracking-normal mt-0.5">Intervention vs. control</span>
+                <span className="block font-normal text-gray-400 text-[10px] tracking-normal mt-0.5">Intervention vs. control</span>
               </th>
               {showAbsCols && (
                 <>
-                  <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">
+                  <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px]">
                     Abs. — Intervention
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">
+                  <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px]">
                     Abs. — Control
                   </th>
                 </>
               )}
               {showRdCol && (
-                <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">
+                <th scope="col" className="text-right px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px]">
                   Risk difference
                 </th>
               )}
-              <th scope="col" className="text-center px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">
+              <th scope="col" className="text-center px-4 py-3 font-semibold text-gray-500 tracking-[0.275px] text-[11px] leading-[16.5px]">
                 Certainty
               </th>
             </tr>
@@ -199,7 +211,7 @@ export function GradeTable({ rows, visibleOutcomeIds, comparison, onRowClick, hi
       {/* Certainty legend — below the table */}
       <div className="flex flex-wrap items-center justify-between gap-4 px-2 pt-3">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide font-['Articulat_CF',sans-serif]">
+          <span className="text-[14px] text-gray-500 font-semibold font-['Inter',sans-serif]">
             Certainty of evidence:
           </span>
           {(["High", "Moderate", "Low", "Very Low"] as CertaintyLevel[]).map((level) => (

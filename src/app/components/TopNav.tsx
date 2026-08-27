@@ -51,7 +51,7 @@ export function TopNav() {
                 <div className="fixed inset-0 z-40" onClick={() => setProjectOpen(false)} />
                 <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                   <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Select Project</p>
+                    <p className="text-[14px] font-semibold text-gray-400">Select project</p>
                   </div>
                   <ul role="listbox" className="py-1">
                     {PROJECTS.map((project) => (

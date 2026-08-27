@@ -20,14 +20,21 @@ const PRIMARY_SOF_ROWS: SoFRow[] = [
   {
     id: "os", outcome: "Overall survival", studyCount: 12, participantCount: 14832,
     relativeEffect: "HR 0.79", relativeEffectCI: "(0.71–0.88)",
-    absoluteIntervention: "312 per 1,000", absoluteControl: "395 per 1,000", riskDifference: "−83 per 1,000", certainty: "High",
+    absoluteIntervention: "540 per 1,000", absoluteControl: "620 per 1,000", riskDifference: "−80 per 1,000", certainty: "High",
     direction: "benefit", includedTrialNames: T.slice(0, 12),
     heterogeneity: { i2: "21.2", tau2: "0.0041", p: "0.2828" },
+    absoluteUnit: "deaths per 1,000 at 36 months",
+    riskDifferenceCI: "95% CI 110 fewer to 47 fewer",
+    forestDataId: "os",
+    plainSummary:
+      "Adding an ARPI to ADT **reduces the risk of death** — about **80 fewer deaths per 1,000 people** over three years.",
+    plainCaption:
+      "High certainty across 12 randomized trials and 14,832 participants. Further research is very unlikely to change confidence in this estimate.",
     domains: {
-      riskOfBias:     { rating: "Not serious", details: { allEvaluated: "Yes", allLowRisk: "True", highRiskSomeConcerns: "False", subgroupPValue: "NA", percentHighRisk: "0%", algorithmDecision: "Not serious", algorithmNote: "All studies are low risk", humanDecision: "Not serious", humanNote: "Not all studies are evaluated" } },
-      indirectness:   { rating: "Not serious", details: { algorithmDecision: "Not serious", algorithmNote: "Population and intervention closely match PICO", humanDecision: "Not serious", humanNote: "Confirmed by clinical review" } },
-      inconsistency:  { rating: "Not serious", details: { algorithmDecision: "Not serious", algorithmNote: "I² = 21.2%, within acceptable threshold", humanDecision: "Not serious", humanNote: "Low unexplained heterogeneity" } },
-      imprecision:    { rating: "Not serious", details: { algorithmDecision: "Not serious", algorithmNote: "95% CI excludes 1.0; large sample size", humanDecision: "Not serious", humanNote: "Optimal information size met" } },
+      riskOfBias:     { rating: "Not serious", details: { allEvaluated: "Yes", allLowRisk: "True", highRiskSomeConcerns: "False", subgroupPValue: "NA", percentHighRisk: "0%", algorithmDecision: "Not serious", algorithmNote: "All studies are low risk", humanDecision: "Not serious", humanNote: "Not all studies are evaluated", summary: "All 12 contributing trials were assessed with RoB 2. No trial contributed more than 14% of the pooled weight.", rationale: "No downgrade — every trial was judged low risk across all five RoB 2 domains." } },
+      indirectness:   { rating: "Not serious", details: { algorithmDecision: "Not serious", algorithmNote: "Population and intervention closely match PICO", humanDecision: "Not serious", humanNote: "Confirmed by clinical review", summary: "Population, intervention and outcome definitions map directly onto the review question.", rationale: "No downgrade — the evidence answers the PICO without substitution." } },
+      inconsistency:  { rating: "Not serious", details: { algorithmDecision: "Not serious", algorithmNote: "I² = 21.2%, within acceptable threshold", humanDecision: "Not serious", humanNote: "Low unexplained heterogeneity", summary: "Between-trial variation is low (I² 21.2%) and the point estimates all fall on the same side of the null.", rationale: "No downgrade — heterogeneity sits well within the pre-specified threshold." } },
+      imprecision:    { rating: "Not serious", details: { algorithmDecision: "Not serious", algorithmNote: "95% CI excludes 1.0; large sample size", humanDecision: "Not serious", humanNote: "Optimal information size met", reviewerOverride: true, summary: "The 95% confidence interval excludes no effect and the optimal information size is met at 14,832 participants.", rationale: "No downgrade — a reviewer confirmed the algorithm's judgement after inspecting the interval." } },
       publicationBias:{ rating: "Not applicable", details: { algorithmDecision: "Not applicable", algorithmNote: "Sufficient studies for funnel plot", humanDecision: "Not applicable", humanNote: "No asymmetry detected" } },
     },
   },
@@ -128,7 +135,12 @@ export function SummaryOfFindingsPage() {
         {/* Main content — Figma node 1:7658 */}
         <div className="flex-1 flex flex-col min-w-0">
           {selectedRow ? (
-            <OutcomeDetailView row={selectedRow} onBack={() => setSelectedRow(null)} />
+            <OutcomeDetailView
+              row={selectedRow}
+              onBack={() => setSelectedRow(null)}
+              siblings={sofRows}
+              onSelectSibling={setSelectedRow}
+            />
           ) : (
             <>
               {/* Page header + stats — Figma node 1:7659 */}
@@ -139,10 +151,10 @@ export function SummaryOfFindingsPage() {
                     "linear-gradient(177.26deg, rgba(133,200,250,0.15) 8.4861%, rgba(133,200,250,0) 58.303%)",
                 }}
               >
-                <h1 className="pt-1 text-[40px] leading-[44px] font-semibold text-[#101828] font-['Benton_Modern_D',serif]">
+                <h1 className="pt-1 text-[40px] leading-[44px] font-semibold text-[#101828] font-serif">
                   Summary of Findings
                 </h1>
-                <p className="pt-3 text-[15px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[800px] max-w-full line-clamp-2">
+                <p className="pt-3 text-[16px] leading-[24px] text-[#4b5563] font-['Inter',sans-serif] w-[800px] max-w-full line-clamp-2">
                   Each card is one outcome from the GRADE Summary of Findings analysis. Card color and
                   label follow the certainty of evidence in how confident the review is in the effect
                   estimate.
@@ -152,10 +164,10 @@ export function SummaryOfFindingsPage() {
                 <div className="mt-10 flex flex-wrap gap-16 max-w-[795px]">
                   {stats.map((stat) => (
                     <div key={stat.label} className="flex flex-col items-start">
-                      <span className="text-[26px] leading-[30px] font-semibold text-[#2e75b6] font-['Articulat_CF',sans-serif]">
+                      <span className="text-[32px] leading-[26px] font-semibold text-[#2e75b6] font-['Inter',sans-serif]">
                         {stat.value}
                       </span>
-                      <span className="pt-1 text-[12px] leading-[16.5px] font-medium text-black font-['Inter',sans-serif]">
+                      <span className="pt-2 text-[16px] leading-[16.5px] font-medium text-black font-['Inter',sans-serif]">
                         {stat.label}
                       </span>
                     </div>
@@ -165,17 +177,17 @@ export function SummaryOfFindingsPage() {
 
               {/* Certainty filter — Figma node 1:7688 */}
               <div className="mx-8 flex flex-wrap items-center gap-3 border-b border-[#f3f4f6] pb-6 pr-8">
-                <span className="text-[13px] font-medium text-[#101828] font-['Inter',sans-serif] mr-2">
-                  Sort by Certainty of Evidence:
+                <span className="text-[16px] leading-[16.5px] font-medium text-[#101828] font-['Inter',sans-serif] mr-2">
+                  Sort by certainty of evidence:
                 </span>
 
                 <button
                   onClick={() => setCertaintyFilter("All")}
                   aria-pressed={certaintyFilter === "All"}
                   className={
-                    "rounded-full px-4 py-1.5 text-[12px] font-semibold font-['Inter',sans-serif] border transition-colors " +
+                    "rounded-full px-4 py-1.5 text-[14px] font-bold font-['Inter',sans-serif] border transition-colors " +
                     (certaintyFilter === "All"
-                      ? "bg-[#1B3A63] border-[#1B3A63] text-white"
+                      ? "bg-[#1B3A63] border-[#1B3A63] text-[#f9fafb]"
                       : "bg-white border-[#d1d5dc] text-[#101828] hover:bg-gray-50")
                   }
                 >
@@ -190,10 +202,10 @@ export function SummaryOfFindingsPage() {
                       onClick={() => setCertaintyFilter(active ? "All" : level)}
                       aria-pressed={active}
                       className={
-                        "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium font-['Inter',sans-serif] border transition-colors " +
+                        "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[14px] font-normal font-['Inter',sans-serif] border transition-colors " +
                         (active
                           ? "border-transparent text-white"
-                          : "bg-white border-[#d1d5dc] text-[#101828] hover:bg-gray-50")
+                          : "bg-white border-[#d1d5dc] text-[#374151] hover:bg-gray-50")
                       }
                       style={active ? { backgroundColor: CERTAINTY_THEME[level].dot } : undefined}
                     >
@@ -208,9 +220,9 @@ export function SummaryOfFindingsPage() {
 
                 <button
                   onClick={() => setGuideOpen(true)}
-                  className="ml-auto flex items-center gap-1.5 rounded-full border border-[#2E75B5] bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#2E75B5] font-['Inter',sans-serif] hover:bg-[#E4F0FE] transition-colors"
+                  className="ml-auto flex items-center gap-1.5 rounded-full border border-[#2E75B5] bg-white px-3.5 py-1.5 text-[16px] font-semibold text-[#2E75B5] font-['Inter',sans-serif] hover:bg-[#E4F0FE] transition-colors"
                 >
-                  <Palette size={13} />
+                  <Palette size={16} />
                   Color guide
                 </button>
               </div>

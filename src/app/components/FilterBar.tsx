@@ -15,7 +15,7 @@ export function FilterBar({ className, align = "left" }: { className?: string; a
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Filters</span>
+        <span className="text-[14px] leading-[18px] font-medium text-black font-['Inter',sans-serif]">Filters</span>
         <button
           onClick={resetAll}
           disabled={!hasActiveFilters}

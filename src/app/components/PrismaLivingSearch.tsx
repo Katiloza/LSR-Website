@@ -49,13 +49,13 @@ export function PrismaLivingSearch({ data, startYear = 2020, endYear = 2026 }: P
       <table className="w-full border-collapse text-[12px] font-['Inter',sans-serif]">
         <thead>
           <tr>
-            <th className="w-16 text-left pr-4 pb-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            <th className="w-16 text-left pr-4 pb-3 text-[11px] leading-[16.5px] font-semibold text-gray-500">
               Year
             </th>
             {MONTHS.map((m) => (
               <th
                 key={m}
-                className="text-center pb-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide min-w-[52px]"
+                className="text-center pb-3 text-[11px] leading-[16.5px] font-semibold text-gray-500 min-w-[52px]"
               >
                 {m}
               </th>

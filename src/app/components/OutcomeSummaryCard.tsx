@@ -14,6 +14,9 @@ import { cn } from "../lib/utils";
  * strength of every outcome on the page without reading a number.
  */
 
+/** First letter capitalised, everything after it lower case. */
+const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
 const DIRECTION_LABEL: Record<EffectDirection, string> = {
   benefit: "Benefit",
   harm: "Harm",
@@ -70,17 +73,17 @@ export function OutcomeSummaryCard({
       style={{ borderColor: selected ? bg : "#E5E7EB", width }}
     >
       <div className="px-4 py-3 flex flex-col gap-1" style={{ backgroundColor: bg, color: text }}>
-        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.9px] font-['Inter',sans-serif]">
-          <span className="size-[6px] rounded-full bg-current opacity-90" />
-          {level} certainty
+        <span className="flex items-center gap-1.5 text-[14px] font-bold tracking-[0.88px] font-['Inter',sans-serif]">
+          <span className="size-[8px] rounded-full bg-current opacity-90" />
+          {sentenceCase(level)} certainty
         </span>
-        <span className="text-[20px] font-semibold leading-tight font-['Articulat_CF',sans-serif]">
+        <span className="text-[20px] font-semibold leading-tight font-['Inter',sans-serif]">
           {DIRECTION_LABEL[direction]}
         </span>
       </div>
 
       <div className="px-4 py-4 flex flex-col gap-3">
-        <p className="text-[20px] font-semibold leading-tight text-[#101828] font-['Articulat_CF',sans-serif]">
+        <p className="text-[24px] font-bold leading-[31.25px] text-[#101828] font-['Inter',sans-serif]">
           {name}
         </p>
 
@@ -90,10 +93,10 @@ export function OutcomeSummaryCard({
             { label: "Participants", value: participants.toLocaleString() },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.9px] text-[#6a7282] font-['Inter',sans-serif]">
+              <span className="text-[14px] font-semibold tracking-[0.77px] text-[#6b7280] font-['Inter',sans-serif]">
                 {stat.label}
               </span>
-              <span className="text-[16px] font-bold text-[#101828] tabular-nums font-['Articulat_CF',sans-serif]">
+              <span className="text-[20px] font-bold text-[#101828] tabular-nums font-['Inter',sans-serif]">
                 {stat.value}
               </span>
             </div>
@@ -105,14 +108,14 @@ export function OutcomeSummaryCard({
         <span
           aria-hidden="true"
           className={cn(
-            "self-start flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold font-['Inter',sans-serif] transition-colors",
+            "self-start flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[16px] font-semibold font-['Inter',sans-serif] transition-colors",
             selected
               ? "bg-[#2E75B5] text-white"
               : "border border-[#2E75B5] text-[#2E75B5] group-hover:bg-[#E4F0FE]"
           )}
         >
           {selected ? "Showing below" : actionLabel}
-          {selected && <ChevronDown size={13} />}
+          {selected && <ChevronDown size={16} />}
         </span>
       </div>
     </div>

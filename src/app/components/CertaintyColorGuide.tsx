@@ -55,7 +55,7 @@ export function CertaintyColorGuide({ open, onClose }: CertaintyColorGuideProps)
               className="pointer-events-auto w-full max-w-[620px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
             >
               <div className="flex items-center justify-between gap-4 px-6 pt-6 pb-4">
-                <h2 className="text-[18px] font-semibold text-gray-900 font-['Articulat_CF',sans-serif]">
+                <h2 className="text-[18px] font-semibold text-gray-900 font-['Inter',sans-serif]">
                   Color guide
                 </h2>
                 <button

@@ -46,7 +46,7 @@ const LABEL_W = 132;   // left rail carrying the section anchor label
 const RAIL_X = 58;     // x of the vertical spine, measured from the flow column
 const CARD_X = 100;    // x of every stacked card's left edge
 const CARD_W = 224;    // width of every stacked flow / branch card
-const INCLUDED_W = 185; // Included cards are narrower and sit in a row
+const INCLUDED_W = 268; // Included cards sit in a row; sized for the 40px count
 const ID_W = 257;      // Identification source cards
 const ID_GAP = 20;
 const BLOCK_W = 820;
@@ -64,21 +64,35 @@ function StageNode({ stage, isActive, onClick }: { stage: PrismaStage; isActive:
   const colors = STAGE_COLORS[stage.type];
   const clickable = stage.type === "final" && !!onClick;
 
+  const isFinal = stage.type === "final";
+
   const content = (
     <div className="flex flex-col gap-1">
       <span
-        className="text-[19px] font-bold leading-none tabular-nums font-['Articulat_CF',sans-serif]"
+        className={cn(
+          "font-bold tabular-nums font-['Inter',sans-serif]",
+          isFinal ? "text-[40px] leading-[26px]" : "text-[20px] leading-[20.9px]"
+        )}
         style={{ color: colors.countColor }}
       >
         {stage.count.toLocaleString()}
       </span>
-      <p className="text-[12px] font-semibold leading-snug font-['Articulat_CF',sans-serif]" style={{ color: colors.text }}>
+      <p
+        className={cn(
+          "font-semibold font-['Inter',sans-serif]",
+          isFinal ? "text-[24px] leading-[24px]" : "text-[14px] leading-[16.9px]"
+        )}
+        style={{ color: colors.text }}
+      >
         {stage.label}
       </p>
       {stage.sublabel && (
         <p
-          className="text-[10px] leading-snug font-['Inter',sans-serif]"
-          style={{ color: stage.type === "final" ? "rgba(255,255,255,0.6)" : "#9ca3af" }}
+          className={cn(
+            "font-normal font-['Inter',sans-serif]",
+            isFinal ? "text-[16px] leading-normal" : "text-[12px] leading-[13.75px]"
+          )}
+          style={{ color: isFinal ? "#F9FAFB" : "#9ca3af" }}
         >
           {stage.sublabel}
         </p>
@@ -117,7 +131,7 @@ function StageNode({ stage, isActive, onClick }: { stage: PrismaStage; isActive:
 
 function PhaseLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-bold uppercase tracking-widest text-[#2E75B5] font-['Articulat_CF',sans-serif]">
+    <span className="text-[16px] font-medium leading-[19.5px] text-[#2E75B5] font-['Inter',sans-serif]">
       {children}
     </span>
   );
@@ -127,7 +141,7 @@ function PhaseLabel({ children }: { children: React.ReactNode }) {
 function SectionRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-stretch">
-      <div className="shrink-0 pt-1.5 pr-[18px] text-right" style={{ width: LABEL_W }}>
+      <div className="shrink-0 pt-1.5 pr-[18px] text-left" style={{ width: LABEL_W }}>
         <PhaseLabel>{label}</PhaseLabel>
       </div>
       <div className="shrink-0 relative" style={{ width: BLOCK_W }}>
@@ -248,25 +262,26 @@ export function PrismaFlowchart({ stages, onNodeClick, activeNodeId }: PrismaFlo
   return (
     <div className="w-full" style={{ maxWidth: LABEL_W + BLOCK_W }}>
       {/* ── Included — the headline result, always visible ── */}
-      <SectionRow label="Included">
-        <div className="flex" style={{ gap: 16 }}>
-          {included.map((stage) => (
-            <div key={stage.id} style={{ width: INCLUDED_W }}>
-              <StageNode stage={stage} isActive={activeNodeId === stage.id} onClick={() => onNodeClick(stage)} />
-            </div>
-          ))}
-        </div>
-      </SectionRow>
+      <h2 className="mb-4 text-[32px] leading-[19.5px] font-medium text-[#2E75B5] font-['Inter',sans-serif]">
+        Included studies
+      </h2>
+      <div className="flex" style={{ gap: 16 }}>
+        {included.map((stage) => (
+          <div key={stage.id} style={{ width: INCLUDED_W }}>
+            <StageNode stage={stage} isActive={activeNodeId === stage.id} onClick={() => onNodeClick(stage)} />
+          </div>
+        ))}
+      </div>
 
       {/* ── Disclosure ── */}
-      <div style={{ paddingLeft: LABEL_W }}>
+      <div>
         <button
           onClick={() => setShowProcess((o) => !o)}
           aria-expanded={showProcess}
-          className="mt-5 mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-[#2E75B5] font-['Inter',sans-serif] hover:underline"
+          className="mt-5 mb-2 flex items-center gap-1.5 text-[20px] font-semibold text-[#0663AD] font-['Inter',sans-serif] hover:underline"
         >
           {showProcess ? "Hide screening process" : "Show how these studies were selected"}
-          {showProcess ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {showProcess ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
 

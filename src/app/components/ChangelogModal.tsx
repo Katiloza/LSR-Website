@@ -75,10 +75,10 @@ export function ChangelogModal({ open, onClose }: ChangelogModalProps) {
             >
               <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 shrink-0">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-[#2E75B5] uppercase tracking-widest mb-1.5 font-['Articulat_CF',sans-serif]">
+                  <p className="text-[14px] font-semibold text-[#2E75B5] tracking-[0.77px] mb-1.5 font-['Inter',sans-serif]">
                     Living review
                   </p>
-                  <h2 className="text-[18px] font-semibold text-gray-900 leading-snug font-['Articulat_CF',sans-serif]">
+                  <h2 className="text-[18px] font-semibold text-gray-900 leading-snug font-['Inter',sans-serif]">
                     What's changed
                   </h2>
                   <p className="text-[12px] text-gray-400 mt-0.5 font-['Inter',sans-serif]">

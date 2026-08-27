@@ -316,14 +316,14 @@ export function SummaryTable({ rows, activeFilters, highlightId, checkedLeafKeys
                         key={pn.node.key}
                         colSpan={pn.leafCount}
                         scope="colgroup"
-                        className="px-3 py-2 text-left whitespace-nowrap font-semibold text-white text-[11px] tracking-wide border-r border-white/15"
+                        className="px-3 py-2 text-left whitespace-nowrap font-semibold text-white text-[11px] leading-[16.5px] tracking-[0.275px] border-r border-white/15"
                         style={{ background: bg }}
                       >
                         {isCategory ? (
                           // Category label pins past the sticky-left columns, then
                           // scrolls out as the next category enters.
                           <span
-                            className="inline-block uppercase"
+                            className="inline-block"
                             style={{ position: "sticky", left: stickyTotal + 12 }}
                           >
                             {pn.node.label}
@@ -341,7 +341,7 @@ export function SummaryTable({ rows, activeFilters, highlightId, checkedLeafKeys
                       rowSpan={maxDepth - pn.depth + 1}
                       scope="col"
                       onClick={() => handleSort(pn.node.key)}
-                      className="px-4 py-2 text-left align-bottom font-semibold text-white uppercase tracking-wide text-[10px] cursor-pointer select-none whitespace-nowrap border-r border-white/15"
+                      className="px-4 py-2 text-left align-bottom font-semibold text-white tracking-[0.25px] text-[10px] leading-[15px] cursor-pointer select-none whitespace-nowrap border-r border-white/15"
                       style={
                         STICKY_KEYS.has(pn.node.key)
                           ? {
