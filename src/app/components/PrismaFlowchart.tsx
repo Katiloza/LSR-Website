@@ -36,7 +36,7 @@ export interface PrismaFlowchartProps {
 const STAGE_COLORS: Record<PrismaStageType, { bg: string; border: string; text: string; countColor: string }> = {
   total:     { bg: "#FFFFFF", border: "#BFDBFE", text: "#1e3a5f", countColor: "#2E75B5" },
   include:   { bg: "#FFFFFF", border: "#BFDBFE", text: "#1e3a5f", countColor: "#2E75B5" },
-  final:     { bg: "#1E3A6E", border: "#1E3A6E", text: "#FFFFFF", countColor: "#FFFFFF" },
+  final:     { bg: "#1E3A7A", border: "#1E3A7A", text: "#FFFFFF", countColor: "#FFFFFF" },
   exclude:   { bg: "#F3F4F6", border: "#E5E7EB", text: "#4B5563", countColor: "#9CA3AF" },
   screening: { bg: "#FEF2F2", border: "#FECACA", text: "#B91C1C", countColor: "#DC2626" },
 };
@@ -67,7 +67,7 @@ function StageNode({ stage, isActive, onClick }: { stage: PrismaStage; isActive:
   const isFinal = stage.type === "final";
 
   const content = (
-    <div className="flex flex-col gap-1">
+    <div className={cn("flex flex-col", isFinal ? "gap-[18px]" : "gap-1")}>
       <span
         className={cn(
           "font-bold tabular-nums font-['Inter',sans-serif]",
@@ -103,11 +103,15 @@ function StageNode({ stage, isActive, onClick }: { stage: PrismaStage; isActive:
   const sharedStyle: React.CSSProperties = {
     backgroundColor: isActive ? "#E4F0FE" : colors.bg,
     borderColor: isActive ? "#2E75B5" : colors.border,
+    boxShadow: isFinal ? "0px 1px 1.5px rgba(0,0,0,0.1), 0px 1px 1px rgba(0,0,0,0.1)" : undefined,
   };
 
   if (!clickable) {
     return (
-      <div className="w-full h-full text-left rounded-[10px] border px-4 py-3" style={sharedStyle}>
+      <div
+        className={cn("w-full h-full text-left border", isFinal ? "rounded-[14px] p-[20px]" : "rounded-[10px] px-4 py-3")}
+        style={sharedStyle}
+      >
         {content}
       </div>
     );
@@ -118,7 +122,8 @@ function StageNode({ stage, isActive, onClick }: { stage: PrismaStage; isActive:
       onClick={onClick}
       aria-label={`${stage.label}: ${stage.count} references. Click to view studies.`}
       className={cn(
-        "w-full h-full text-left rounded-[10px] border px-4 py-3 transition-all duration-150",
+        "w-full h-full text-left border transition-all duration-150",
+        isFinal ? "rounded-[14px] p-[20px]" : "rounded-[10px] px-4 py-3",
         "focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/40 hover:brightness-110",
         isActive && "ring-2 ring-[#2E75B5]"
       )}
