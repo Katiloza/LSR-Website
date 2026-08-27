@@ -148,11 +148,28 @@ export function GlobalSearch({
     navigate(path + (paramStr ? `?${paramStr}` : ""));
   };
 
+  // Submits the raw query to the full Search Results page (Figma node 24:622).
+  // Only fires when nothing in the quick-jump dropdown is highlighted, so
+  // arrow-key selection of a specific section/study still wins on Enter.
+  const goToResultsPage = () => {
+    if (!query.trim()) return;
+    setOpen(false);
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  };
+
   const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && activeIdx >= 0 && flatResults.length > 0) {
+        goTo(flatResults[activeIdx]);
+      } else {
+        goToResultsPage();
+      }
+      return;
+    }
     if (!open || flatResults.length === 0) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, flatResults.length - 1)); }
     if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
-    if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); goTo(flatResults[activeIdx]); }
     if (e.key === "Escape") { setOpen(false); }
   };
 

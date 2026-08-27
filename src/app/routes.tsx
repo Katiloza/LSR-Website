@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { PrismaPage } from "./pages/PrismaPage";
 import { SummaryTablesPage } from "./pages/SummaryTablesPage";
 import { SummaryOfFindingsPage } from "./pages/SummaryOfFindingsPage";
+import { SearchResultsPage } from "./pages/SearchResultsPage";
 
 const routes: RouteObject[] = [
   { path: "/", element: <Navigate to="/home" replace /> },
@@ -12,6 +13,7 @@ const routes: RouteObject[] = [
   { path: "/summary-tables", Component: SummaryTablesPage },
   { path: "/meta-analysis", Component: MetaAnalysis },
   { path: "/summary-of-findings", Component: SummaryOfFindingsPage },
+  { path: "/search", Component: SearchResultsPage },
 ];
 
 /**
