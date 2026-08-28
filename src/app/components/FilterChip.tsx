@@ -51,7 +51,7 @@ export function FilterChip({ label, options, selectedOptions, onChange }: Filter
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 px-4 py-2 rounded-full border text-[11px] font-medium transition-all",
+          "flex items-center gap-2 px-4 py-2 rounded-full border text-[14px] font-medium font-['Inter',sans-serif] transition-all",
           selectedOptions.length > 0
             ? "border-[#2E75B5] bg-blue-50 text-[#2E75B5]"
             : "border-[#2E75B5] text-[#000105] hover:bg-gray-50"

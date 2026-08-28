@@ -6,27 +6,15 @@ import { cn } from "../lib/utils";
 
 /**
  * Shared filter bar shown under the search bar on every page: a "Filters"
- * heading with a "Reset all" callout, then the dropdown pills. All selections
- * are held in the global FilterContext, so they persist across pages.
+ * heading, then the dropdown pills. All selections are held in the global
+ * FilterContext, so they persist across pages.
  */
 export function FilterBar({ className, align = "left" }: { className?: string; align?: "left" | "center" }) {
-  const { activeFilters, setFilter, resetAll, hasActiveFilters } = useFilters();
+  const { activeFilters, setFilter } = useFilters();
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-center justify-between">
-        <span className="text-[14px] leading-[18px] font-medium text-black font-['Inter',sans-serif]">Filters</span>
-        <button
-          onClick={resetAll}
-          disabled={!hasActiveFilters}
-          className={cn(
-            "text-[12px] font-medium transition-colors",
-            hasActiveFilters ? "text-[#2E75B5] hover:underline" : "text-gray-300 cursor-default"
-          )}
-        >
-          Reset all
-        </button>
-      </div>
+      <span className="text-[14px] leading-[18px] font-medium text-black font-['Inter',sans-serif]">Filters</span>
       <div className={cn("flex flex-wrap gap-2", align === "center" && "justify-center")}>
         {FILTER_CONFIGS.map((cfg) => (
           <FilterChip
