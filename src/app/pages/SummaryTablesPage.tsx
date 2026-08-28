@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router";
-import { Construction, ChevronDown, ChevronRight } from "lucide-react";
+import { Construction, ChevronDown, ChevronRight, Check, Search, X } from "lucide-react";
 import { PageShell } from "../components/PageShell";
 import {
   SummaryTable,
@@ -19,23 +19,28 @@ type TableTab = "interactive-table" | "results-table" | "traffic-plot";
 
 type CheckState = "all" | "some" | "none";
 
+/** Every leaf node beneath `node` (the node itself when it is already a leaf). */
+function descendantLeaves(node: ColNode): ColNode[] {
+  if (!node.children || node.children.length === 0) return [node];
+  return node.children.flatMap(descendantLeaves);
+}
+
+// Matches FilterChip's option checkbox (16px, 4px radius, Check glyph) so the
+// column popover and the filter popovers read as the same control; the fill
+// keeps the per-level color that ties a row back to its table header band.
 function TriCheckbox({ state, color }: { state: CheckState; color: string }) {
   return (
-    <span
-      className="shrink-0 flex items-center justify-center w-[14px] h-[14px] rounded-[3px] border transition-colors"
+    <div
+      className="shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors"
       style={
         state === "none"
           ? { borderColor: "#d1d5db", background: "#fff" }
           : { borderColor: color, background: color }
       }
     >
-      {state === "all" && (
-        <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-          <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
-      {state === "some" && <span className="w-[7px] h-[1.5px] bg-white rounded-full" />}
-    </span>
+      {state === "all" && <Check size={12} className="text-white" strokeWidth={3} />}
+      {state === "some" && <span className="w-[7px] h-[2px] bg-white rounded-full" />}
+    </div>
   );
 }
 
@@ -89,12 +94,12 @@ function ColumnTreeNode({
         <button
           onClick={() => onToggleCheck(node)}
           className={cn(
-            "flex items-center gap-2 text-left py-1.5 pr-2 flex-1 min-w-0 font-['Inter',sans-serif]",
-            depth === 0 ? "text-[13px] font-semibold" : "text-[12px]"
+            "flex items-center gap-3 text-left px-2 py-2 rounded-lg flex-1 min-w-0 font-['Inter',sans-serif] text-[13px] transition-colors",
+            depth === 0 && "font-semibold"
           )}
         >
           <TriCheckbox state={state} color={color} />
-          <span className="col-tree-label truncate">{displayLabel}</span>
+          <span className="col-tree-label flex-1 break-words">{displayLabel}</span>
         </button>
       </div>
       {!isLeaf && open && (
@@ -127,14 +132,17 @@ function ColumnSelectorPill({
   expandedKeys,
   onToggleCheck,
   onToggleExpand,
+  onSetChecked,
 }: {
   node: ColNode;
   checkedLeafKeys: Set<string>;
   expandedKeys: Set<string>;
   onToggleCheck: (node: ColNode) => void;
   onToggleExpand: (key: string) => void;
+  onSetChecked: (keys: string[], checked: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   // Click-away + Escape close the popover.
@@ -156,37 +164,114 @@ function ColumnSelectorPill({
   // label verbatim — no transform (which also keeps "NCT" from becoming "Nct").
   const label = node.label;
 
+  // Hiding a column is this control's equivalent of applying a filter, so the
+  // pill mirrors FilterChip: untouched (all columns shown) reads as the plain
+  // white resting state, and any hidden column turns it blue with a count.
+  const leafKeys = descendantLeafKeys(node);
+  const hiddenCount = leafKeys.reduce((a, k) => a + (checkedLeafKeys.has(k) ? 0 : 1), 0);
+
+  // Long category trees get an in-dropdown search box, at the same threshold
+  // FilterChip uses. Matching leaves render as a flat list.
+  const searchable = leafKeys.length > 8;
+  const matches = useMemo(() => {
+    if (!query.trim()) return null;
+    const q = query.toLowerCase();
+    return descendantLeaves(node).filter((l) => l.label.toLowerCase().includes(q));
+  }, [node, query]);
+
+  const showAll = () => onSetChecked(leafKeys, true);
+
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className={cn(
-          "flex items-center gap-2 px-4 py-2 rounded-full border border-[#2E75B5] transition-colors",
-          "text-[16px] font-medium text-[#000105] tracking-[0.0645px] font-['Inter',sans-serif] leading-[16.5px]",
-          open ? "bg-[#EFF6FF]" : "bg-white hover:bg-[#F8FBFF]"
+          "flex items-center gap-2 px-4 py-2 rounded-full border border-[#2E75B5] transition-all",
+          "text-[14px] font-medium font-['Inter',sans-serif]",
+          hiddenCount > 0 ? "bg-blue-50 text-[#2E75B5]" : "bg-white text-[#000105] hover:bg-gray-50"
         )}
       >
         <span className="whitespace-nowrap">{label}</span>
+        {hiddenCount > 0 && (
+          <span
+            className="bg-[#2E75B5] text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px]"
+            title={`${hiddenCount} column${hiddenCount === 1 ? "" : "s"} hidden`}
+          >
+            {hiddenCount}
+          </span>
+        )}
         <ChevronDown size={14} className={cn("shrink-0 transition-transform", open && "rotate-180")} />
       </button>
 
-      {/* Children render at depth 1 — depth 0 is reserved for the ALL-CAPS
-          category label, which the tree title-cases (that would turn "NCT"
-          into "Nct" for these column names). */}
       {open && (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-40 w-[320px] max-h-[420px] overflow-y-auto rounded-[14px] border border-gray-200 bg-white shadow-lg p-2">
-          {(node.children ?? []).map((child) => (
-            <ColumnTreeNode
-              key={child.key}
-              node={child}
-              depth={1}
-              checkedLeafKeys={checkedLeafKeys}
-              expandedKeys={expandedKeys}
-              onToggleCheck={onToggleCheck}
-              onToggleExpand={onToggleExpand}
-            />
-          ))}
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          {searchable && (
+            <div className="relative mb-2">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}…`}
+                className="w-full pl-8 pr-7 py-1.5 text-[12px] rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E75B5]/20 focus:border-[#2E75B5] font-['Inter',sans-serif]"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="max-h-64 overflow-y-auto">
+            {matches ? (
+              matches.length === 0 ? (
+                <p className="px-3 py-4 text-center text-[12px] text-gray-400">No matches</p>
+              ) : (
+                // Search collapses the hierarchy — a flat list of hits reads
+                // better than a tree pruned down to scattered branches.
+                matches.map((leaf) => (
+                  <ColumnTreeNode
+                    key={leaf.key}
+                    node={leaf}
+                    depth={0}
+                    checkedLeafKeys={checkedLeafKeys}
+                    expandedKeys={expandedKeys}
+                    onToggleCheck={onToggleCheck}
+                    onToggleExpand={onToggleExpand}
+                  />
+                ))
+              )
+            ) : (
+              /* Children render at depth 1 — depth 0 is reserved for the
+                 ALL-CAPS category label, which the tree title-cases (that
+                 would turn "NCT" into "Nct" for these column names). */
+              (node.children ?? []).map((child) => (
+                <ColumnTreeNode
+                  key={child.key}
+                  node={child}
+                  depth={1}
+                  checkedLeafKeys={checkedLeafKeys}
+                  expandedKeys={expandedKeys}
+                  onToggleCheck={onToggleCheck}
+                  onToggleExpand={onToggleExpand}
+                />
+              ))
+            )}
+          </div>
+
+          {hiddenCount > 0 && (
+            <div className="border-t border-gray-100 mt-2 pt-2 flex items-center justify-between px-1">
+              <span className="text-[11px] text-gray-400">{hiddenCount} hidden</span>
+              <button onClick={showAll} className="text-[11px] font-semibold text-[#2E75B5] hover:underline px-1">
+                Show all
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -264,7 +349,14 @@ export function SummaryTablesPage() {
     });
   };
 
-  const setAll = (on: boolean) => setCheckedLeafKeys(on ? new Set(ALL_LEAF_KEYS) : new Set());
+  /** Force a set of leaves on/off — backs the popover's "Show all". */
+  const setChecked = (keys: string[], checked: boolean) => {
+    setCheckedLeafKeys((prev) => {
+      const next = new Set(prev);
+      keys.forEach((k) => (checked ? next.add(k) : next.delete(k)));
+      return next;
+    });
+  };
 
   const activeTabLabel = TABS.find((t) => t.id === activeTab)?.label ?? "Interactive Table";
 
@@ -294,17 +386,9 @@ export function SummaryTablesPage() {
             <>
               {/* Column selector — Figma node 1:664 */}
               <div className="flex flex-col gap-2 px-8 pt-4">
-                <div className="flex items-center justify-between w-[489px] max-w-full">
-                  <span className="text-[14px] leading-[18px] font-semibold text-black font-['Inter',sans-serif]">
-                    Column selector
-                  </span>
-                  <button
-                    onClick={() => setAll(true)}
-                    className="text-[14px] leading-[18px] font-medium text-black font-['Inter',sans-serif] hover:underline"
-                  >
-                    Reset all
-                  </button>
-                </div>
+                <span className="text-[14px] leading-[18px] font-semibold text-black font-['Inter',sans-serif]">
+                  Column selector
+                </span>
 
                 <div className="flex gap-2 items-start flex-wrap">
                   {COLUMN_SCHEMA.map((node) => (
@@ -315,6 +399,7 @@ export function SummaryTablesPage() {
                       expandedKeys={expandedKeys}
                       onToggleCheck={toggleCheck}
                       onToggleExpand={toggleExpand}
+                      onSetChecked={setChecked}
                     />
                   ))}
                 </div>
