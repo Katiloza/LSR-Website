@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { FilterBar } from "../components/FilterBar";
 import { CitationList } from "../components/CitationList";
+import { Pagination } from "../components/Pagination";
 import { CANONICAL_TRIAL_NAMES, getCitation } from "../lib/citations";
 
 /**
@@ -12,6 +13,8 @@ import { CANONICAL_TRIAL_NAMES, getCitation } from "../lib/citations";
  * FilterBar / CitationList pairing already used by its "Study list" panel,
  * so a reference row looks identical no matter which page it's read from.
  */
+
+const PAGE_SIZE = 5;
 
 function matchesQuery(trialName: string, q: string): boolean {
   const c = getCitation(trialName);
@@ -30,6 +33,13 @@ export function SearchResultsPage() {
   const results = trimmed
     ? CANONICAL_TRIAL_NAMES.filter((name) => matchesQuery(name, trimmed.toLowerCase()))
     : CANONICAL_TRIAL_NAMES;
+
+  const [page, setPage] = useState(1);
+  // A new query changes the result set, so always land back on page 1.
+  useEffect(() => { setPage(1); }, [query]);
+
+  const totalPages = Math.ceil(results.length / PAGE_SIZE);
+  const pageResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <PageShell>
@@ -54,13 +64,16 @@ export function SearchResultsPage() {
           </div>
 
           <div className="px-8 pt-2 pb-8">
-            <div className="max-w-[768px] w-full">
+            <div className="max-w-[768px] w-full flex flex-col">
               {results.length === 0 ? (
                 <p className="py-12 text-[14px] text-gray-400 font-['Inter',sans-serif]">
                   No studies match &quot;{trimmed}&quot;. Try a different treatment, trial name, or author.
                 </p>
               ) : (
-                <CitationList trialNames={results} />
+                <>
+                  <CitationList trialNames={pageResults} />
+                  <Pagination page={page} totalPages={totalPages} onPageChange={setPage} className="mt-6" />
+                </>
               )}
             </div>
           </div>
