@@ -1,13 +1,16 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { PrismaFlowchart, PrismaStage } from "../components/PrismaFlowchart";
 import { PrismaLivingSearch } from "../components/PrismaLivingSearch";
 import { CitationList } from "../components/CitationList";
 import { FilterBar } from "../components/FilterBar";
+import { Pagination } from "../components/Pagination";
 import { useCitation } from "../lib/CitationContext";
 import { CANONICAL_TRIAL_NAMES } from "../lib/citations";
 import { cn } from "../lib/utils";
+
+const PAGE_SIZE = 5;
 
 type SidebarPanel = "flow" | "study-list";
 type PrismaView = "current-state" | "initial-search" | "living-search";
@@ -92,10 +95,15 @@ const LIVING_SEARCH_DATA = [
 // Figma node 1:473 — the filter pills sit between the page header and the
 // reference list, above a hairline rule that the list hangs from.
 function StudyListView() {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(INCLUDED_TRIALS.length / PAGE_SIZE);
+  const pageTrials = INCLUDED_TRIALS.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="flex flex-col">
       <FilterBar className="pb-4 border-b border-[#2E75B5]/40" />
-      <CitationList trialNames={INCLUDED_TRIALS} />
+      <CitationList trialNames={pageTrials} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} className="mt-6" />
     </div>
   );
 }
