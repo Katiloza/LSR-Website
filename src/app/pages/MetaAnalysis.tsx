@@ -4,6 +4,7 @@ import { PageShell } from "../components/PageShell";
 import { ForestPlot } from "../components/ForestPlot";
 import { OutcomeTreePanel, TreeGroup } from "../components/OutcomeTreePanel";
 import { MOCK_FOREST_DATA } from "../mockData";
+import { cn } from "../lib/utils";
 
 type AnalysisType = "Primary" | "Sensitivity";
 
@@ -167,6 +168,45 @@ const SENSITIVITY_GROUPS: Group[] = [
 /** "BRCA positive (cohort 1)" → "BRCA positive, cohort 1" — Figma node 35:1729. */
 const asQualifier = (label: string) => label.replace(/\s*\(([^)]*)\)\s*$/, ", $1");
 
+// "Sort by:" pill row — Figma node 43:719, Sensitivity Meta-Analysis only.
+// Every subgroup leaf reports both survival outcomes as separate stacked
+// cards (SUBGROUP_OUTCOMES); this lets the reader narrow the comparison down
+// to just one of them instead of scrolling past both. Display label differs
+// slightly in casing from the data's "Progression Free Survival" — matched
+// to the Figma copy exactly, filtering still keys off the outcome name.
+const SORT_OPTIONS: { key: string; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "Overall Survival", label: "Overall Survival" },
+  { key: "Progression Free Survival", label: "Progression free survival" },
+];
+
+function SortByRow({ value, onChange }: { value: string; onChange: (key: string) => void }) {
+  return (
+    <div className="flex items-center gap-3 pb-6 border-b border-[#f3f4f6]">
+      <p className="text-[16px] font-medium text-black font-['Inter',sans-serif] whitespace-nowrap">Sort by:</p>
+      {SORT_OPTIONS.map((opt) => {
+        const active = value === opt.key;
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => onChange(opt.key)}
+            aria-pressed={active}
+            className={cn(
+              "px-2 py-1 rounded-full text-[14px] whitespace-nowrap transition-colors font-['Inter',sans-serif]",
+              active
+                ? "bg-[#1e3a7a] text-[#f9fafb] font-bold"
+                : "border border-[#2E75B5] text-[#374151] font-medium hover:bg-[#F3F8FE]"
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function flatten(groups: Group[]) {
   const leaves: { leaf: Leaf; group: Group }[] = [];
   groups.forEach((group) => {
@@ -235,6 +275,7 @@ export function MetaAnalysis() {
         key: `${leaf.id}-${outcome.dataId}`,
         title: `${outcome.name} (${asQualifier(leaf.label)})`,
         dataId: outcome.dataId,
+        outcomeName: outcome.name,
       }));
     }
     return [
@@ -245,9 +286,20 @@ export function MetaAnalysis() {
             ? `${leaf.title ?? leaf.label} (overall population)`
             : leaf.title ?? leaf.label,
         dataId: leaf.dataId ?? "os",
+        outcomeName: undefined as string | undefined,
       },
     ];
   }, [selected, analysisType]);
+
+  // "Sort by:" (Figma node 43:719) — only meaningful when a leaf yields
+  // multiple outcome cards; resets to "All" on every new selection.
+  const [sortFilter, setSortFilter] = useState("all");
+  useEffect(() => { setSortFilter("all"); }, [selected.leaf.id]);
+
+  const showSortBy = analysisType === "Sensitivity" && !!selected.group.outcomes;
+  const visibleCards = showSortBy && sortFilter !== "all"
+    ? cards.filter((c) => c.outcomeName === sortFilter)
+    : cards;
 
   return (
     <PageShell>
@@ -285,7 +337,8 @@ export function MetaAnalysis() {
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-8 pt-5">
-            {cards.map((card) => {
+            {showSortBy && <SortByRow value={sortFilter} onChange={setSortFilter} />}
+            {visibleCards.map((card) => {
               const data = MOCK_FOREST_DATA[card.dataId] ?? MOCK_FOREST_DATA["os"];
               return (
                 <section
